@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-navy: #0e3a7c;
+    --brand-navy-dark: #0a254e;
+    --brand-navy-light: #1e4ea1;
+    --brand-red: #d32027;
+    --brand-red-hover: #b91c1c;
+    --brand-gold: #f59e0b;
+    --brand-gold-light: #fbbf24;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased font-sans;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+}
+
+/* Touch manipulation & No-scrollbar utilities */
+.touch-action-manipulation {
+  touch-action: manipulation;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Ticker Marquee for Realtime Leave Requests */
+@keyframes ticker-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker-marquee {
+  display: inline-flex;
+  width: max-content;
+  animation: ticker-marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.group-ticker:hover .animate-ticker-marquee,
+.animate-ticker-marquee:hover {
+  animation-play-state: paused !important;
+}
+
+.ticker-mask-fade {
+  mask-image: linear-gradient(to right, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+}
+
+/* Document paper styles (Nghị định 30/2020/NĐ-CP: Times New Roman, cỡ 13pt) */
+.official-doc-paper,
+.official-doc-paper * {
+  font-family: "Times New Roman", Times, "Cambria", serif !important;
+}
+
+.official-doc-paper {
+  font-size: 13pt;
+  line-height: 1.4;
+  color: #000000;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.official-doc-paper p {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* Printable A4 styles according to ND 30/2020 */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm 20mm 25mm;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .print-area,
+  .print-area *,
+  .official-doc-paper,
+  .official-doc-paper * {
+    font-family: "Times New Roman", Times, "Cambria", serif !important;
+    color: #000000 !important;
+    background-color: transparent !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-page-break {
+    page-break-after: always;
+  }
+}
+

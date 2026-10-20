@@ -1,0 +1,24 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Bảo vệ các thư mục cấu hình và mã nguồn nhạy cảm
+  RewriteRule ^(\.git|\.env|composer\.lock|package\.json|\.htaccess|backend/config) - [F,L]
+
+  # 2. Định tuyến API: Chuyển toàn bộ request /api sang backend
+  RewriteRule ^api/(.*)$ backend/public/index.php [QSA,L]
+  RewriteRule ^api$ backend/public/index.php [QSA,L]
+
+  # 3. Phục vụ trực tiếp các file tĩnh thực tế (js, css, ảnh, svg, fonts...)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 4. Định tuyến toàn bộ các trang giao diện (React Router) về index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Nén GZIP tăng tốc độ tải
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json image/svg+xml
+</IfModule>

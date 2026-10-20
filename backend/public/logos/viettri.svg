@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="vtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#991B1B" />
+      <stop offset="100%" stop-color="#450A0A" />
+    </linearGradient>
+    <linearGradient id="vtGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <filter id="vtShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Outer Ring with Red & Gold -->
+  <circle cx="100" cy="100" r="94" fill="url(#vtGrad)" stroke="url(#vtGold)" stroke-width="4.5" filter="url(#vtShadow)" />
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#FDE047" stroke-width="1.5" stroke-dasharray="4 2" />
+
+  <!-- Circular Text Path -->
+  <path id="vtTextCircle" d="M 28,100 A 72,72 0 1,1 172,100 A 72,72 0 1,1 28,100" fill="none" />
+  
+  <text font-family="'Inter', 'Roboto', 'Arial', sans-serif" font-size="11.5" font-weight="900" fill="#FFFFFF" letter-spacing="2">
+    <textPath href="#vtTextCircle" startOffset="50%" text-anchor="middle">
+      TRƯỜNG THPT VIỆT TRÌ
+    </textPath>
+  </text>
+  
+  <text font-family="'Inter', 'Roboto', 'Arial', sans-serif" font-size="10" font-weight="800" fill="#FDE047" letter-spacing="3">
+    <textPath href="#vtTextCircle" startOffset="0%" text-anchor="middle">
+      ★ VIỆT TRÌ - PHÚ THỌ ★
+    </textPath>
+  </text>
+
+  <!-- Inner Center Shield with Bronze Drum / Star rays -->
+  <circle cx="100" cy="102" r="42" fill="#FFFFFF" stroke="url(#vtGold)" stroke-width="3" />
+  
+  <!-- Bronze drum 8-pointed star in subtle gold -->
+  <polygon points="100,68 103,94 128,102 103,110 100,136 97,110 72,102 97,94" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1" />
+  <polygon points="100,74 102,96 122,102 102,108 100,130 98,108 78,102 98,96" fill="#FDE68A" opacity="0.6" />
+
+  <!-- Burning Torch -->
+  <path d="M 100,72 C 93,81 96,89 100,92 C 104,89 107,81 100,72 Z" fill="#DC2626" />
+  <path d="M 100,77 C 97,83 98,87 100,89 C 102,87 103,83 100,77 Z" fill="#FBBF24" />
+  <path d="M 96,92 L 104,92 L 101,104 L 99,104 Z" fill="#1E293B" />
+
+  <!-- Open Book -->
+  <path d="M 100,108 C 88,102 76,104 68,107 L 68,122 C 76,119 88,117 100,123 C 112,117 124,119 132,122 L 132,107 C 124,104 112,102 100,108 Z" fill="#FFFFFF" stroke="#991B1B" stroke-width="2" />
+  <path d="M 100,108 L 100,123" stroke="#991B1B" stroke-width="2" />
+
+  <!-- Foundation Badge -->
+  <rect x="76" y="128" width="48" height="15" rx="4" fill="#991B1B" stroke="#FDE047" stroke-width="1" />
+  <text x="100" y="139" font-family="'Inter', 'Arial', sans-serif" font-size="8.5" font-weight="900" fill="#FFFFFF" text-anchor="middle">
+    EST. 1962
+  </text>
+</svg>

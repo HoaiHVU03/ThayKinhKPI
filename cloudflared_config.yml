@@ -1,0 +1,10 @@
+tunnel: 38cb8465-da92-4d59-ad62-d8aff6cc9210
+credentials-file: C:\Users\Admin\.cloudflared\38cb8465-da92-4d59-ad62-d8aff6cc9210.json
+
+ingress:
+  - hostname: webkpi.ttytphuninh.vn
+    service: http://127.0.0.1:5288
+    originRequest:
+      noTLSVerify: true
+      httpHostHeader: localhost:5288
+  - service: http_status:404

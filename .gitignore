@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build artifacts
+frontend/dist/
+
+# Large binary files & archives (GitHub 50MB-100MB limit)
+cloudflared.exe
+*.zip
+*.tar.gz
+*.rar
+
+# Environment & Sensitive configs
+**/env.php
+.env
+.env.local
+.env.*.local
+
+# Python cache & temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+.tempmediaStorage/
+.user_uploaded/
+
+# IDE & OS temporary files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Scratch temporary SQL
+scratch/
+scratch_*.sql

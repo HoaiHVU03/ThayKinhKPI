@@ -1,0 +1,1475 @@
+# MASTERPROMPT XÂY DỰNG HỆ THỐNG QUẢN LÝ HỌC SINH, KÝ TÚC XÁ VÀ KPI RÈN LUYỆN NỀN NẾP
+## TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG — PHIÊN BẢN 1.0
+
+---
+
+# I. VAI TRÒ VÀ MỤC TIÊU DỰ ÁN
+
+Bạn là một đội ngũ phát triển phần mềm chuyên nghiệp bao gồm:
+
+- Solution Architect: thiết kế kiến trúc hệ thống.
+- Senior Frontend Developer: xây dựng giao diện React hiện đại.
+- Senior Backend Developer: xây dựng API bằng PHP.
+- Database Engineer: thiết kế cơ sở dữ liệu MySQL.
+- UI/UX Designer: thiết kế trải nghiệm người dùng.
+- QA Engineer: kiểm thử nghiệp vụ, dữ liệu và phân quyền.
+- Security Engineer: bảo vệ dữ liệu học sinh và an toàn hệ thống.
+
+Nhiệm vụ của bạn là **phân tích, thiết kế, lập trình, kiểm thử và hoàn thiện toàn bộ hệ thống quản lý học sinh, ký túc xá, điểm danh, kỷ luật và đánh giá KPI rèn luyện nền nếp cho Trường THPT Chuyên Hùng Vương**.
+
+Đây là hệ thống quản lý nội bộ phục vụ hoạt động thực tế của nhà trường, không phải landing page, không phải dashboard tĩnh và không phải bản demo chỉ có giao diện.
+
+Phải xây dựng ứng dụng có khả năng:
+
+1. Quản lý hồ sơ học sinh, lớp chuyên, giáo viên và ký túc xá.
+2. Theo dõi 11 chế độ sinh hoạt KTX theo thời gian thực.
+3. Điểm danh học sinh, quản lý trưởng phòng, trưởng tầng và báo cáo Quản sinh.
+4. Quản lý vi phạm, tính điểm KPI và đánh giá rèn luyện.
+5. Quản lý trực ban Tòa nhà A.
+6. Quản lý đơn xin phép ra ngoài, về quê, khám bệnh và học thêm.
+7. Tổng hợp thống kê toàn trường, theo khối và theo lớp.
+8. Xuất Excel/CSV và in báo cáo hành chính.
+9. Quản lý chuyển niên khóa, lên lớp và lưu trữ hồ sơ.
+10. Phân quyền chi tiết cho sáu nhóm người dùng.
+11. Sao lưu, phục hồi, ghi nhật ký và bảo vệ dữ liệu.
+12. Hỗ trợ triển khai thực tế trên máy chủ có tên miền.
+
+Không được kết thúc công việc sau khi tạo giao diện. Phải tiếp tục xây dựng backend, database, API, dữ liệu mẫu, xác thực, phân quyền và kiểm thử cho đến khi các chức năng trong phạm vi được triển khai thực sự hoạt động.
+
+# II. CÔNG NGHỆ BẮT BUỘC
+
+## 2.1. Frontend
+
+Sử dụng:
+
+- React.
+- TypeScript.
+- Vite.
+- React Router.
+- Tailwind CSS.
+- Thư viện biểu đồ Recharts.
+- Lucide React cho hệ thống biểu tượng.
+- React Hook Form kết hợp Zod để kiểm tra dữ liệu biểu mẫu.
+- TanStack Query để quản lý trạng thái truy vấn API khi phù hợp.
+
+Yêu cầu giao diện:
+
+- Responsive trên máy tính, máy tính bảng và điện thoại.
+- Ưu tiên giao diện desktop cho nghiệp vụ quản lý và giao diện mobile cho điểm danh KTX.
+- Sử dụng các component có thể tái sử dụng.
+- Có trạng thái loading, empty state, lỗi API và thông báo thành công.
+- Có xác nhận đối với thao tác xóa, khóa kỳ đánh giá và các hành động quan trọng.
+- Không sử dụng dữ liệu hardcode làm nguồn dữ liệu chính trong sản phẩm hoàn thiện.
+- Không để các nút bấm chỉ mang tính trang trí.
+
+## 2.2. Backend
+
+Sử dụng PHP 8.x và PDO.
+
+Yêu cầu:
+
+- PHP thuần theo hướng kiến trúc MVC hoặc kiến trúc phân lớp tương đương.
+- REST API trả về JSON.
+- Phân tách Controllers, Services, Models/Repositories, Middleware, Validators và Routes.
+- Sử dụng PDO prepared statements.
+- Kiểm tra dữ liệu đầu vào phía máy chủ.
+- Có xử lý ngoại lệ và mã lỗi HTTP phù hợp.
+- Có transaction cho các nghiệp vụ nhiều bước.
+- Không cho phép frontend tự quyết định quyền truy cập.
+- Không đặt thông tin bí mật trong mã nguồn frontend.
+- Có cấu hình môi trường riêng cho development và production.
+
+Không sử dụng Docker làm yêu cầu bắt buộc. Hệ thống phải có hướng dẫn chạy trên môi trường PHP/MySQL thông thường.
+
+## 2.3. Database
+
+Sử dụng MySQL hoặc MariaDB tương thích, quản lý bằng phpMyAdmin.
+
+Yêu cầu:
+
+- Thiết kế cơ sở dữ liệu quan hệ rõ ràng.
+- Có khóa chính, khóa ngoại, chỉ mục và ràng buộc dữ liệu phù hợp.
+- Có migration tạo và cập nhật cấu trúc database.
+- Có seed dữ liệu demo riêng biệt.
+- Có file SQL để triển khai ban đầu.
+- Không phụ thuộc vào localStorage để lưu dữ liệu nghiệp vụ chính.
+- Không tự động xóa hồ sơ lịch sử khi chuyển niên khóa.
+- Không lưu mật khẩu dưới dạng văn bản thuần.
+
+## 2.4. Nguyên tắc kiến trúc
+
+Frontend chỉ hiển thị và gửi yêu cầu nghiệp vụ. Backend chịu trách nhiệm xác thực, phân quyền, kiểm tra quy tắc và xử lý dữ liệu.
+
+Mọi dữ liệu quan trọng phải được lưu vào MySQL. Nhiều người dùng đăng nhập trên các thiết bị khác nhau phải nhìn thấy dữ liệu thống nhất theo quyền hạn của họ.
+
+# III. QUY MÔ VÀ DỮ LIỆU NGHIỆP VỤ BAN ĐẦU
+
+Sử dụng các số liệu mục tiêu sau để xây dựng cấu trúc hệ thống và dữ liệu demo:
+
+| Hạng mục | Quy mô |
+|---|---:|
+| Tổng số học sinh | 1.880 |
+| Số lớp chuyên | 54 |
+| Khối 10 | 17 lớp, 595 học sinh |
+| Khối 11 | 17 lớp, 595 học sinh |
+| Khối 12 | 20 lớp, 690 học sinh |
+| Học sinh nội trú | 699 |
+| Học sinh nam nội trú | 335 |
+| Học sinh nữ nội trú | 364 |
+| Học sinh ngoại trú | 1.181 |
+| Phòng KTX | 120 |
+| Phòng nam | 56 |
+| Phòng nữ | 64 |
+| Giáo viên trực Tòa nhà A | 37 |
+| Vai trò người dùng | 6 |
+| Mã lỗi KPI | L01–L10 |
+| Chế độ sinh hoạt KTX | 11 |
+
+Các con số trên là số liệu cấu hình ban đầu theo yêu cầu dự án. Phải cho phép quản trị viên cập nhật khi nhà trường cung cấp dữ liệu chính thức.
+
+**Quy định quan trọng về dữ liệu:**
+
+- Không giả định tên thật, CCCD, số điện thoại hoặc địa chỉ thật của học sinh.
+- Nếu chưa có dữ liệu thực tế, tạo dữ liệu demo giả lập, ghi rõ là dữ liệu minh họa.
+- Phải xây dựng chức năng nhập Excel/CSV để thay thế dữ liệu demo.
+- Không tạo dữ liệu sai lệch nhưng lại hiển thị như dữ liệu chính thức.
+- Phải có báo cáo kiểm tra tổng số học sinh, lớp, phòng và trạng thái nội trú.
+- Cho phép điều chỉnh sĩ số theo dữ liệu thực tế mà không cần sửa code.
+
+# IV. PHÂN HỆ 01 — DASHBOARD TỔNG QUAN
+
+Tạo dashboard chính sau khi đăng nhập.
+
+## 4.1. Thẻ thống kê
+
+Hiển thị:
+
+- Tổng số học sinh toàn trường.
+- Tổng số lớp chuyên.
+- Tổng số học sinh nội trú.
+- Tổng số học sinh ngoại trú.
+- Số học sinh nam và nữ nội trú.
+- Số phòng KTX đang sử dụng.
+- Tỷ lệ chuyên cần.
+- Điểm KPI trung bình.
+- Số vi phạm trong ngày.
+- Số đơn xin phép chờ duyệt.
+- Số phòng chưa điểm danh.
+- Số tầng chưa gửi báo cáo.
+
+Các chỉ số phải được tính từ dữ liệu database theo khoảng thời gian được chọn.
+
+Các giá trị 98,4% chuyên cần và 97,4 điểm KPI chỉ được sử dụng làm dữ liệu demo có đánh dấu, không được mặc định là kết quả thực tế.
+
+## 4.2. Biểu đồ
+
+Xây dựng:
+
+- Biểu đồ số lượng học sinh theo khối.
+- Biểu đồ nội trú và ngoại trú.
+- Biểu đồ phân bố vi phạm L01–L10.
+- Biểu đồ xu hướng KPI theo thời gian.
+- Biểu đồ tỷ lệ chuyên cần.
+- Biểu đồ xếp hạng 54 lớp.
+- Biểu đồ tình trạng điểm danh các phòng KTX.
+
+## 4.3. Bộ lọc
+
+Hỗ trợ lọc theo:
+
+- Ngày, tuần, tháng, học kỳ, năm học.
+- Khối 10, 11, 12.
+- Lớp.
+- KTX, tầng, phòng.
+- Mã lỗi vi phạm.
+- Trạng thái xử lý.
+
+Khi nhấn vào một chỉ số hoặc biểu đồ, điều hướng đến trang danh sách chi tiết tương ứng.
+
+# V. PHÂN HỆ 02 — QUẢN LÝ HỌC SINH VÀ 54 LỚP CHUYÊN
+
+## 5.1. Hồ sơ học sinh
+
+Mỗi học sinh có hồ sơ bao gồm:
+
+- Mã học sinh duy nhất.
+- Họ và tên.
+- Ngày sinh.
+- Giới tính.
+- Khối, lớp.
+- Ảnh đại diện nếu được cung cấp.
+- Họ tên phụ huynh/người liên hệ.
+- Số điện thoại học sinh.
+- Số điện thoại phụ huynh.
+- Số CCCD khi cần thiết.
+- Địa chỉ quê quán.
+- Trạng thái nội trú hoặc ngoại trú.
+- Phòng KTX và tầng nếu là học sinh nội trú.
+- GVCN.
+- Ngày nhập học.
+- Trạng thái học tập.
+- Ghi chú nghiệp vụ.
+
+Thông tin CCCD, địa chỉ và điện thoại phải được giới hạn theo quyền truy cập. Không hiển thị công khai hoặc đưa vào báo cáo không cần thiết.
+
+## 5.2. Danh sách và tìm kiếm
+
+Xây dựng bảng dữ liệu có:
+
+- Phân trang phía máy chủ.
+- Sắp xếp cột.
+- Tìm kiếm theo tên và mã học sinh.
+- Lọc theo khối, lớp, giới tính, nội trú/ngoại trú.
+- Xem hồ sơ chi tiết.
+- Chỉnh sửa hồ sơ theo quyền.
+- Xem lịch sử vi phạm, KPI, điểm danh và chuyển phòng.
+- Xuất danh sách theo phạm vi được phép.
+
+## 5.3. Nhập dữ liệu hàng loạt
+
+Hỗ trợ CSV và Excel.
+
+Quy trình nhập:
+
+1. Tải file mẫu.
+2. Chọn file cần nhập.
+3. Kiểm tra cấu trúc cột.
+4. Xem trước dữ liệu.
+5. Phát hiện mã học sinh trùng.
+6. Phát hiện lớp hoặc phòng không tồn tại.
+7. Kiểm tra các trường bắt buộc.
+8. Hiển thị dòng lỗi và hướng dẫn sửa.
+9. Cho phép xác nhận nhập dữ liệu hợp lệ.
+10. Tổng hợp số bản ghi thành công và thất bại.
+
+Không được nhập âm thầm dữ liệu sai định dạng.
+
+## 5.4. Quản lý 54 lớp
+
+Mỗi lớp có:
+
+- Mã lớp.
+- Tên lớp.
+- Khối.
+- Niên khóa.
+- Giáo viên chủ nhiệm.
+- Sĩ số.
+- Số học sinh nội trú.
+- Điểm KPI trung bình.
+- Tỷ lệ chuyên cần.
+- Số vi phạm.
+- Xếp hạng thi đua.
+
+Danh mục 54 lớp và GVCN phải được quản trị viên chỉnh sửa. Không tự bịa tên giáo viên thật.
+
+# VI. PHÂN HỆ 03 — QUẢN LÝ KTX VÀ SƠ ĐỒ PHÒNG
+
+## 6.1. Sơ đồ trực quan
+
+Tạo giao diện sơ đồ KTX từ tầng 2 đến tầng 6 theo yêu cầu.
+
+Phân chia:
+
+- Khu nam: 56 phòng, 335 học sinh.
+- Khu nữ: 64 phòng, 364 học sinh.
+
+Các số liệu phân bố phòng phải có khả năng điều chỉnh theo dữ liệu thực tế.
+
+Mỗi phòng là một thẻ trực quan hiển thị:
+
+- Mã phòng.
+- Tầng.
+- Khu nam/nữ.
+- Sĩ số hiện tại.
+- Sức chứa.
+- Trưởng phòng.
+- Trạng thái điểm danh.
+- Trạng thái báo cáo.
+- Điểm nội vụ nếu có dữ liệu đánh giá.
+
+## 6.2. Chi tiết phòng
+
+Khi mở phòng, hiển thị danh sách học sinh và thông tin cần thiết:
+
+- Họ tên.
+- Lớp.
+- Mã học sinh.
+- Trạng thái có mặt.
+- Trưởng phòng.
+- Tình trạng nội vụ.
+- Vi phạm KTX.
+
+Nút gọi điện và sao chép số điện thoại phải sử dụng dữ liệu thật đã được cấp quyền xem.
+
+## 6.3. Nghiệp vụ chuyển phòng
+
+Cho phép người có quyền:
+
+- Phân học sinh vào phòng.
+- Chuyển học sinh giữa các phòng.
+- Đổi trưởng phòng.
+- Phân công trưởng tầng.
+- Cập nhật sức chứa.
+- Xem lịch sử phân phòng.
+- Kiểm tra phòng vượt sức chứa.
+- Ngăn việc phân học sinh vào khu vực không phù hợp với quy tắc nhà trường.
+
+Không xóa lịch sử phân phòng khi học sinh chuyển đi.
+
+# VII. PHÂN HỆ 04 — ĐIỂM DANH KTX VÀ BAN TỰ QUẢN
+
+## 7.1. Điểm danh
+
+Xây dựng hai mốc điểm danh chính:
+
+- Buổi sáng: 06h00.
+- Buổi tối: 22h00.
+
+Cho phép quản trị viên điều chỉnh khung giờ.
+
+Các trạng thái điểm danh:
+
+- Có mặt.
+- Vắng có phép.
+- Vắng không phép.
+- Đi khám bệnh.
+- Về quê.
+- Được phép ra ngoài.
+- Trạng thái khác theo cấu hình.
+
+## 7.2. Nút điểm danh nhanh
+
+Có nút lớn:
+
+**“1 CHẠM — ĐỦ MẶT”**
+
+Khi sử dụng:
+
+1. Hiển thị xác nhận.
+2. Ghi nhận toàn bộ học sinh đang thuộc phòng tại thời điểm điểm danh là có mặt.
+3. Lưu người thao tác, thời gian và ca điểm danh.
+4. Không ghi đè dữ liệu của một ca đã khóa.
+5. Nếu có học sinh vắng hoặc đã được ghi nhận trạng thái đặc biệt, phải yêu cầu xác nhận ngoại lệ trước khi hoàn tất.
+6. Cho phép sửa sai theo quyền và lưu lịch sử.
+
+Không sử dụng thao tác một chạm để bỏ qua việc xác nhận các trường hợp vắng.
+
+## 7.3. Giao diện trưởng phòng
+
+Trưởng phòng được:
+
+- Xem đúng phòng được giao.
+- Điểm danh học sinh.
+- Xem trạng thái từng người.
+- Ghi chú sự việc.
+- Gửi báo cáo phòng.
+- Xem lịch sử báo cáo của phòng.
+
+Không được:
+
+- Sửa hồ sơ cá nhân.
+- Chuyển học sinh.
+- Sửa phòng khác.
+- Chỉnh sửa KPI toàn trường.
+- Thay đổi cấu hình.
+
+## 7.4. Giao diện trưởng tầng
+
+Trưởng tầng được:
+
+- Xem các phòng thuộc tầng được giao.
+- Theo dõi tiến độ điểm danh.
+- Xem tổng số có mặt, vắng phép, vắng không phép.
+- Xem phòng chưa báo cáo.
+- Tổng hợp báo cáo tầng.
+- Gửi báo cáo Quản sinh.
+- Xem lịch sử báo cáo tầng.
+
+Không được sửa danh sách học sinh hoặc truy cập tầng khác ngoài phạm vi quyền.
+
+## 7.5. Báo cáo Zalo 22h15
+
+Tự động tạo nội dung báo cáo theo mẫu có thể cấu hình.
+
+Ví dụ định dạng:
+
+BÁO CÁO NỀ NẾP KTX — NGÀY [NGÀY/THÁNG/NĂM]
+
+Tầng: [TẦNG]
+
+- Tổng số học sinh: [SỐ LƯỢNG]
+- Có mặt: [SỐ LƯỢNG]
+- Vắng có phép: [SỐ LƯỢNG]
+- Vắng không phép: [SỐ LƯỢNG]
+- Số phòng đã báo cáo: [X/Y]
+- Phòng cần xử lý: [DANH SÁCH]
+- Nội dung cần chú ý: [GHI CHÚ]
+
+Thời gian tổng hợp: [GIỜ PHÚT]
+
+Người báo cáo: [TÊN NGƯỜI GỬI]
+
+Yêu cầu:
+
+- Sinh nội dung từ dữ liệu database.
+- Có nút sao chép một chạm.
+- Có nút mở lịch sử báo cáo.
+- Không tính học sinh chưa điểm danh là có mặt.
+- Phân biệt dữ liệu chưa báo cáo với dữ liệu đã xác nhận.
+- Không tuyên bố tin nhắn đã gửi Zalo khi mới chỉ tạo nội dung.
+- Tích hợp gửi tự động chỉ khi đã triển khai phương thức kết nối hợp lệ, có cấu hình và được kiểm thử.
+
+# VIII. PHÂN HỆ 05 — 11 CHẾ ĐỘ SINH HOẠT KTX
+
+Xây dựng timeline chế độ sinh hoạt từ 05h15 đến 22h30.
+
+Các mốc nghiệp vụ được nêu trong yêu cầu:
+
+- 05h15: Báo thức.
+- Thể dục sáng.
+- Gấp chăn màn, chỉnh trang nội vụ.
+- Ăn sáng.
+- 07h15: Niêm phong KTX.
+- Học chính khóa tại Tòa nhà A.
+- Ăn trưa và nghỉ trưa.
+- Thể thao buổi chiều.
+- 18h00: Chốt cổng trường.
+- 19h30–21h45: Tự học tối.
+- 22h00: Điểm danh.
+- 22h30: Tắt đèn và khóa cửa theo quy định.
+
+Tài liệu đầu vào chưa xác định đầy đủ tên và thời gian chính thức của cả 11 chế độ. Vì vậy, phải tạo cấu hình đủ 11 mục nhưng cho phép quản trị viên sửa tên, giờ, thứ tự, checklist và người phụ trách trước khi áp dụng chính thức.
+
+## 8.1. Đồng hồ thời gian thực
+
+Giao diện hiển thị:
+
+- Giờ hiện tại.
+- Chế độ đang diễn ra.
+- Chế độ tiếp theo.
+- Thời gian còn lại.
+- Trạng thái hoàn thành.
+- Checklist chưa hoàn thành.
+
+Tính chế độ dựa trên thời gian của máy chủ, thống nhất múi giờ Asia/Ho_Chi_Minh. Đồng hồ trên frontend chỉ phục vụ hiển thị.
+
+## 8.2. Checklist chế độ
+
+Mỗi chế độ có:
+
+- Tên nhiệm vụ.
+- Thời gian thực hiện.
+- Danh sách kiểm tra.
+- Người chịu trách nhiệm.
+- Trạng thái hoàn thành.
+- Thời gian xác nhận.
+- Ghi chú.
+- Lịch sử cập nhật.
+
+Hỗ trợ cảnh báo mốc 07h15, 18h00, 22h00 và 22h30.
+
+Các thao tác như niêm phong, khóa cổng hoặc tắt đèn được ghi nhận trên phần mềm, không được tuyên bố là hệ thống tự điều khiển thiết bị vật lý nếu chưa có tích hợp phần cứng.
+
+# IX. PHÂN HỆ 06 — KPI VÀ SỔ KỶ LUẬT
+
+## 9.1. Quy tắc 10 mã lỗi
+
+Tạo bảng cấu hình KPI theo tài liệu ban đầu:
+
+| Mã | Nội dung | Điểm trừ |
+|---|---|---:|
+| L01 | Đi học sau 07h00 | 1 |
+| L02 | Sai đồng phục hoặc không đeo thẻ | 3 |
+| L03 | Để xe sai vị trí quy định | 3 |
+| L04 | Ăn quà vặt trong lớp | 3 |
+| L05 | Sử dụng điện thoại trái phép | 5 |
+| L06 | Không tắt thiết bị khi được yêu cầu | 5 |
+| L07 | Vi phạm nền nếp KTX | 3 |
+| L08 | Mất trật tự, vi phạm văn hóa ứng xử | 3 |
+| L09 | Gian lận thi cử hoặc lạm dụng AI | 10 |
+| L10 | Hành vi đặc biệt nghiêm trọng theo quy chế | 20 |
+
+Các mức trừ trên phải được lưu trong bảng cấu hình, không viết cố định ở nhiều nơi trong code.
+
+Tên chính thức của L10, phạm vi hành vi và mức xử lý phải được nhà trường xác nhận trước khi phát hành.
+
+## 9.2. Cách tính KPI
+
+Điểm gốc mỗi học sinh: 100 điểm cho mỗi kỳ đánh giá.
+
+Công thức:
+
+Điểm còn lại = Điểm gốc − Tổng điểm trừ hợp lệ trong kỳ.
+
+Yêu cầu:
+
+- Không trừ điểm hai lần do gửi lại cùng một biên bản.
+- Mỗi biên bản có mã định danh duy nhất.
+- Có trạng thái nháp, chờ duyệt, đã xác nhận, bị từ chối hoặc đã hủy theo quy trình.
+- Chỉ các vi phạm hợp lệ được xác nhận mới ảnh hưởng đến điểm KPI.
+- Lưu điểm trước và sau khi xử lý.
+- Có lịch sử điều chỉnh điểm.
+- Không tự ý xóa biên bản đã được xác nhận.
+- Có cơ chế khóa kỳ đánh giá.
+- Có thể tính lại điểm khi quy tắc được điều chỉnh, nhưng phải lưu lịch sử và người thực hiện.
+
+## 9.3. Xếp loại
+
+Theo tài liệu đầu vào:
+
+- Xuất sắc: 90–100 điểm.
+- Tốt: 75–89 điểm.
+- Đạt: 50–74 điểm.
+- Chưa đạt: dưới 50 điểm.
+
+Cần xác nhận cách xử lý điểm thập phân, điểm âm và điều kiện đặc biệt của L10. Không tự ý làm tròn điểm hoặc thay đổi ngưỡng.
+
+L10 được mô tả trong tài liệu là vi phạm nghiêm trọng, có thể dẫn đến xếp loại Chưa đạt. Quy tắc này phải được quản trị viên cấu hình sau khi nhà trường xác nhận.
+
+## 9.4. Quy trình lập biên bản
+
+Biểu mẫu phải bao gồm:
+
+- Mã biên bản.
+- Học sinh vi phạm.
+- Lớp.
+- Thời gian và địa điểm.
+- Mã lỗi.
+- Mô tả sự việc.
+- Điểm trừ dự kiến.
+- Người lập biên bản.
+- Minh chứng nếu có.
+- Người xem xét.
+- Trạng thái phê duyệt.
+- Ghi chú và lịch sử xử lý.
+
+## 9.5. Ba cấp độ xử lý KTX
+
+Tạo cấu hình cho ba cấp độ được nêu trong yêu cầu:
+
+- Mức 1: Nhắc nhở.
+- Mức 2: Xử lý ở cấp cao hơn theo quy chế được phê duyệt.
+- Mức 3: Xem xét trả phòng KTX và hạ mức rèn luyện theo quy định.
+
+Cụm từ “giảm phụ huynh” trong tài liệu đầu vào chưa rõ nghĩa, do đó không được tự diễn giải thành một hình thức kỷ luật chính thức.
+
+Hệ thống phải có:
+
+- Điều kiện tích lũy.
+- Thời hạn theo dõi.
+- Người có thẩm quyền phê duyệt.
+- Biên bản xử lý.
+- Thông tin thông báo phụ huynh.
+- Lịch sử thực hiện.
+
+Không tự động buộc học sinh trả phòng hoặc áp dụng hình thức kỷ luật nghiêm trọng chỉ dựa trên số điểm khi chưa có quy chế được phê duyệt.
+
+# X. PHÂN HỆ 07 — TRỰC BAN TÒA NHÀ A
+
+## 10.1. Lịch trực
+
+Quản lý lịch trực của 37 giáo viên.
+
+Thông tin gồm:
+
+- Giáo viên.
+- Ngày trực.
+- Ca trực.
+- Vị trí.
+- Nhiệm vụ.
+- Trạng thái hoàn thành.
+
+Cho phép quản trị viên phân công và điều chỉnh lịch.
+
+## 10.2. Quy trình trực 06h55–07h15
+
+Tạo checklist bốn bước theo yêu cầu nghiệp vụ:
+
+1. Kiểm tra bảng và điều kiện phòng học.
+2. Thu gom, quản lý hộp điện thoại trong thời gian truy bài 15 phút.
+3. Ghi nhận tình hình lớp và trao đổi thực tế với học sinh khi cần.
+4. Hoàn thành báo cáo trực và ghi nhận các sự việc liên quan đến KPI.
+
+Các bước cụ thể cần được nhà trường xác nhận về thứ tự, người phụ trách và cách ghi nhận.
+
+## 10.3. Chức năng
+
+- Checklist từng bước.
+- Ghi nhận hoàn thành hoặc chưa hoàn thành.
+- Ghi nhận lớp có vi phạm.
+- Tạo biên bản vi phạm từ màn hình trực ban.
+- Lưu lịch sử theo giáo viên và ngày trực.
+- Tổng hợp tình trạng trực ban.
+- Không tự động tạo vi phạm khi chưa có căn cứ hoặc chưa được xác nhận.
+
+# XI. PHÂN HỆ 08 — QUẢN LÝ ĐƠN XIN PHÉP
+
+Hỗ trợ các loại đơn:
+
+- Về quê cuối tuần.
+- Học thêm buổi tối.
+- Khám bệnh.
+- Việc riêng gia đình.
+- Ra ngoài theo trường hợp khác được cho phép.
+
+Mỗi đơn có:
+
+- Mã đơn.
+- Học sinh.
+- Lớp và phòng.
+- Loại đơn.
+- Lý do.
+- Thời gian bắt đầu.
+- Thời gian dự kiến trở lại.
+- Người liên hệ.
+- Tệp đính kèm nếu cần.
+- Người duyệt.
+- Trạng thái.
+- Lịch sử xử lý.
+
+Quy trình:
+
+1. Tạo đơn.
+2. Kiểm tra dữ liệu.
+3. Gửi phê duyệt.
+4. Người có thẩm quyền duyệt, từ chối hoặc yêu cầu bổ sung.
+5. Ghi nhận thời gian ra ngoài.
+6. Đối chiếu khi học sinh quay lại.
+7. Cảnh báo quá hạn.
+8. Lưu lịch sử.
+
+Không coi việc nộp đơn đồng nghĩa với đã được phép ra ngoài. Chỉ các đơn được phê duyệt hợp lệ mới được dùng làm căn cứ cho trạng thái vắng có phép.
+
+# XII. PHÂN HỆ 09 — THỐNG KÊ TRƯỜNG, KHỐI, LỚP
+
+## 12.1. Cấp trường
+
+Hiển thị:
+
+- Tổng số học sinh.
+- Tổng số lớp.
+- Nội trú và ngoại trú.
+- Tỷ lệ chuyên cần.
+- Điểm KPI trung bình.
+- Số vi phạm theo L01–L10.
+- Số đơn xin phép.
+- Thống kê tình trạng KTX.
+- Xếp hạng thi đua.
+
+## 12.2. Cấp khối
+
+So sánh ba khối theo dữ liệu thực tế:
+
+- Khối 10: mục tiêu 17 lớp, 595 học sinh.
+- Khối 11: mục tiêu 17 lớp, 595 học sinh.
+- Khối 12: mục tiêu 20 lớp, 690 học sinh.
+
+Chỉ số:
+
+- Sĩ số.
+- Nội trú và ngoại trú.
+- KPI trung bình.
+- Tỷ lệ chuyên cần.
+- Số vi phạm.
+- Xếp hạng theo tiêu chí đã cấu hình.
+
+## 12.3. Cấp lớp
+
+Cho phép:
+
+- Lọc theo khối.
+- Tìm theo tên lớp.
+- Tìm theo GVCN.
+- Xem danh sách học sinh.
+- Xem KPI từng học sinh.
+- Xem lịch sử vi phạm.
+- Xem thống kê chuyên cần.
+- Xem tỷ lệ nội trú.
+- Xuất báo cáo lớp theo kỳ.
+
+Không hiển thị dữ liệu cá nhân ngoài phạm vi được cấp quyền.
+
+# XIII. PHÂN HỆ 10 — BÁO CÁO, EXCEL/CSV VÀ VĂN BẢN HÀNH CHÍNH
+
+## 13.1. Báo cáo L01–L10
+
+Tạo báo cáo theo ma trận 54 lớp và 10 mã lỗi.
+
+Có thể thống kê:
+
+- Số lần vi phạm.
+- Số học sinh vi phạm.
+- Tổng điểm trừ.
+- Tỷ lệ vi phạm trên sĩ số.
+- So sánh giữa các lớp.
+- So sánh giữa các khối.
+- Xu hướng theo thời gian.
+
+Phải phân biệt số lần vi phạm với số học sinh vi phạm duy nhất.
+
+## 13.2. Xuất danh sách 1.880 học sinh kèm KPI
+
+Bao gồm các cột phù hợp:
+
+- Mã học sinh.
+- Họ tên.
+- Lớp.
+- Khối.
+- Nội trú/ngoại trú.
+- Điểm gốc.
+- Số vi phạm.
+- Tổng điểm trừ.
+- Điểm còn lại.
+- Xếp loại.
+- Nhận xét.
+- Kỳ đánh giá.
+
+Thông tin CCCD, điện thoại và địa chỉ không được xuất mặc định nếu không cần thiết cho mục đích báo cáo.
+
+## 13.3. Excel/CSV
+
+Yêu cầu:
+
+- Xuất CSV UTF-8, tương thích tiếng Việt.
+- Xuất Excel với tên cột rõ ràng.
+- Có bộ lọc dữ liệu trước khi xuất.
+- Tính tổng chính xác.
+- Không xuất dữ liệu ngoài phạm vi quyền.
+- Ghi nhật ký người xuất, thời gian và loại báo cáo.
+- Với dữ liệu CSV mở bằng Excel, có biện pháp hạn chế nguy cơ công thức độc hại từ các ô bắt đầu bằng ký tự công thức.
+
+## 13.4. In văn bản hành chính
+
+Tạo mẫu in A4 có:
+
+- Quốc hiệu, tiêu ngữ.
+- Tên đơn vị.
+- Tên văn bản.
+- Số và ký hiệu khi có dữ liệu chính thức.
+- Ngày lập.
+- Bảng tổng hợp điểm.
+- Nhận xét.
+- Nơi nhận.
+- Vị trí chữ ký theo mẫu đã được duyệt.
+
+Có thể bố trí các vị trí ký của Hiệu trưởng, Quản sinh và GVCN theo mẫu nghiệp vụ được nhà trường phê duyệt.
+
+Phải hỗ trợ xem trước khi in, căn lề, ngắt trang và lặp lại tiêu đề bảng khi bảng kéo dài nhiều trang.
+
+Không tự tạo chữ ký, con dấu hoặc số văn bản chính thức.
+
+Mẫu phải được rà soát về thể thức theo Nghị định 30/2020/NĐ-CP trước khi sử dụng làm văn bản phát hành chính thức.
+
+# XIV. PHÂN HỆ 11 — CHUYỂN NIÊN KHÓA
+
+Xây dựng công cụ chuyển niên khóa có bước xem trước và xác nhận.
+
+Quy trình:
+
+1. Chọn năm học hiện tại.
+2. Chọn năm học tiếp theo.
+3. Xác định học sinh cần chuyển lớp.
+4. Chuyển Khối 10 lên Khối 11.
+5. Chuyển Khối 11 lên Khối 12.
+6. Xử lý học sinh Khối 12 tốt nghiệp theo trạng thái được xác nhận.
+7. Xử lý các trường hợp chuyển trường, thôi học hoặc ngoại lệ.
+8. Xem trước kết quả.
+9. Xác nhận chuyển.
+10. Lưu nhật ký và kết quả.
+
+Không tự động nâng lớp khi chưa có bước xác nhận.
+
+Không xóa điểm KPI, biên bản vi phạm, điểm danh, đơn xin phép và lịch sử phòng của năm học trước.
+
+Mọi báo cáo lịch sử phải truy xuất được theo niên khóa và kỳ đánh giá.
+
+# XV. PHÂN HỆ 12 — TÀI KHOẢN VÀ PHÂN QUYỀN
+
+Xây dựng sáu vai trò:
+
+1. Ban Giám hiệu/Quản trị.
+2. Quản sinh KTX.
+3. Trưởng phòng KTX.
+4. Trưởng tầng KTX.
+5. Giáo viên Chi đoàn.
+6. Giáo viên chủ nhiệm.
+
+## 15.1. Ma trận quyền
+
+**Ban Giám hiệu/Quản trị**
+
+- Quản lý tài khoản và vai trò.
+- Quản lý học sinh, lớp, giáo viên và phòng.
+- Quản lý cấu hình.
+- Xem báo cáo toàn trường.
+- Quản lý KPI và phê duyệt theo thẩm quyền.
+- Quản lý chuyển niên khóa.
+- Xem nhật ký kiểm toán.
+
+**Quản sinh**
+
+- Quản lý vận hành KTX.
+- Theo dõi điểm danh.
+- Duyệt đơn trong phạm vi được giao.
+- Xử lý vi phạm KTX.
+- Tổng hợp báo cáo.
+- Không mặc nhiên có toàn quyền cấu hình hệ thống.
+
+**Trưởng phòng**
+
+- Chỉ xem và điểm danh phòng được giao.
+- Chỉ gửi báo cáo phòng được giao.
+- Không sửa hồ sơ học sinh.
+- Không xem hoặc sửa phòng khác.
+
+**Trưởng tầng**
+
+- Chỉ xem các phòng thuộc tầng được giao.
+- Tổng hợp báo cáo tầng.
+- Không chỉnh sửa hồ sơ học sinh.
+- Không truy cập tầng khác ngoài quyền được cấp.
+
+**Giáo viên Chi đoàn**
+
+- Xem KPI và thi đua toàn trường theo quyền.
+- Xem báo cáo trực ban được phân quyền.
+- Không mặc nhiên có quyền chỉnh sửa dữ liệu gốc.
+
+**GVCN**
+
+- Chỉ xem học sinh thuộc lớp được phân công.
+- Xem KPI, chuyên cần và lịch sử liên quan.
+- Xuất báo cáo lớp được phép.
+- Không xem dữ liệu lớp khác.
+
+## 15.2. Tài khoản GVCN
+
+Hỗ trợ tạo 54 tài khoản GVCN từ danh mục lớp.
+
+Có thể tạo tên đăng nhập theo quy tắc cấu hình, ví dụ `gvcn_[malop]`.
+
+Không mặc định sử dụng chung một mật khẩu lâu dài. Hệ thống phải hỗ trợ:
+
+- Mật khẩu tạm riêng.
+- Đổi mật khẩu lần đầu.
+- Hash mật khẩu bằng `password_hash()`.
+- Kiểm tra bằng `password_verify()`.
+- Khóa/mở khóa tài khoản.
+- Thu hồi quyền.
+- Giới hạn thử đăng nhập.
+- Hủy các phiên đăng nhập khi cần.
+
+Không đưa mật khẩu thật vào file JavaScript, Git hoặc dữ liệu demo công khai.
+
+# XVI. PHÂN HỆ 13 — CẤU HÌNH NHẬN DIỆN
+
+Tạo trang cấu hình dành cho quản trị viên.
+
+Cho phép:
+
+- Đổi tên trường hiển thị.
+- Cập nhật logo từ tài sản hợp lệ.
+- Chọn màu giao diện.
+- Chỉnh phông chữ.
+- Cập nhật banner.
+- Quản lý thông báo.
+- Cấu hình khung giờ.
+- Cấu hình 11 chế độ sinh hoạt.
+- Cấu hình quy tắc KPI.
+- Cấu hình ngưỡng xếp loại.
+- Cấu hình mẫu báo cáo.
+- Cấu hình danh mục năm học.
+- Cấu hình các tham số vận hành.
+
+Sử dụng nhận diện Trường THPT Chuyên Hùng Vương theo tài sản chính thức được cung cấp.
+
+Không tự vẽ hoặc tuyên bố một logo là logo chính thức nếu chưa có nguồn được xác nhận.
+
+Mọi thay đổi cấu hình quan trọng phải ghi nhật ký, có người thực hiện và thời điểm thay đổi.
+
+# XVII. PHÂN HỆ 14 — BẢO MẬT, NHẬT KÝ VÀ SAO LƯU
+
+## 17.1. Bảo mật
+
+Triển khai:
+
+- Xác thực phía máy chủ.
+- RBAC kết hợp phạm vi dữ liệu.
+- Kiểm tra quyền tại từng API.
+- Prepared statements.
+- Chống SQL injection.
+- Escape dữ liệu khi hiển thị để hạn chế XSS.
+- Bảo vệ CSRF phù hợp với cơ chế xác thực.
+- Cookie phiên đăng nhập an toàn.
+- HTTPS khi triển khai production.
+- Giới hạn đăng nhập thất bại.
+- Kiểm tra quyền tải file.
+- Kiểm tra loại file, kích thước và nội dung upload.
+- Không lưu thông tin bí mật trong frontend.
+- Không ghi mật khẩu hoặc token nhạy cảm vào log.
+- Không để API trả về CCCD hoặc số điện thoại nếu không cần thiết.
+
+Không sử dụng một vai trò frontend hoặc một biến localStorage để quyết định quyền truy cập.
+
+## 17.2. Nhật ký kiểm toán
+
+Ghi lại các thao tác quan trọng:
+
+- Đăng nhập và đăng xuất.
+- Tạo, sửa, lưu trữ hồ sơ.
+- Chuyển phòng.
+- Điểm danh.
+- Sửa điểm danh.
+- Tạo và duyệt biên bản.
+- Thay đổi điểm KPI.
+- Duyệt đơn.
+- Xuất báo cáo.
+- Chuyển niên khóa.
+- Thay đổi cấu hình.
+- Thay đổi quyền người dùng.
+
+Nhật ký gồm:
+
+- Người thực hiện.
+- Hành động.
+- Đối tượng dữ liệu.
+- Thời điểm.
+- Kết quả.
+- Thông tin thay đổi cần thiết, không chứa bí mật xác thực.
+
+Người dùng thông thường không được tự sửa hoặc xóa nhật ký.
+
+## 17.3. Sao lưu
+
+Xây dựng:
+
+- Hướng dẫn sao lưu database.
+- Chức năng xuất bản sao lưu có kiểm soát.
+- Quy trình phục hồi.
+- Kiểm tra tính toàn vẹn sau phục hồi.
+- Cấu hình vị trí lưu bản sao.
+- Chính sách lưu trữ bản sao.
+- Cảnh báo khi sao lưu thất bại.
+
+Không tuyên bố dữ liệu đã được sao lưu nếu chưa xác minh kết quả.
+
+# XVIII. THIẾT KẾ DATABASE
+
+Hãy thiết kế schema MySQL phù hợp, tối thiểu có các nhóm bảng sau. Có thể bổ sung bảng phụ khi cần.
+
+## 18.1. Người dùng và phân quyền
+
+- users
+- roles
+- permissions
+- role_permissions
+- user_role_assignments
+- user_scope_assignments
+- login_sessions
+- audit_logs
+
+Một người dùng có thể được gán một hoặc nhiều phạm vi dữ liệu, nhưng chỉ được truy cập trong phạm vi được cấp.
+
+## 18.2. Nhà trường
+
+- academic_years
+- semesters
+- grade_levels
+- classes
+- teachers
+- teacher_class_assignments
+- students
+- student_contacts
+- student_status_histories
+- student_class_histories
+
+## 18.3. KTX
+
+- dormitory_buildings
+- dormitory_floors
+- dormitory_rooms
+- room_assignments
+- room_leader_assignments
+- floor_leader_assignments
+- dormitory_attendance_sessions
+- dormitory_attendance_records
+- dormitory_room_reports
+- dormitory_floor_reports
+
+## 18.4. Chế độ sinh hoạt
+
+- daily_regimes
+- regime_checklist_items
+- regime_execution_records
+- regime_execution_logs
+
+## 18.5. KPI và kỷ luật
+
+- kpi_rules
+- kpi_assessment_periods
+- violation_records
+- violation_evidence
+- violation_approvals
+- student_kpi_summaries
+- discipline_cases
+- discipline_actions
+- discipline_action_histories
+
+Điểm tổng hợp phải có thể kiểm tra ngược từ các biên bản hợp lệ. Tránh lưu cùng một dữ liệu tổng hợp ở nhiều nơi mà không có cơ chế đồng bộ.
+
+## 18.6. Trực ban
+
+- duty_schedules
+- duty_checklist_items
+- duty_execution_records
+- duty_incidents
+
+## 18.7. Đơn xin phép
+
+- leave_requests
+- leave_approvals
+- leave_movements
+- leave_request_attachments
+
+## 18.8. Báo cáo và cấu hình
+
+- report_templates
+- generated_reports
+- report_delivery_logs
+- school_settings
+- system_notifications
+- import_jobs
+- export_jobs
+- backup_logs
+
+Thiết kế khóa ngoại, chỉ mục và ràng buộc phù hợp. Các bảng quan trọng nên có `created_at`, `updated_at`, người tạo và người cập nhật khi phù hợp.
+
+Dùng transaction khi xử lý các thao tác liên quan đến nhiều bảng.
+
+# XIX. DANH SÁCH API
+
+Xây dựng REST API theo nhóm nghiệp vụ. Có thể điều chỉnh URL, nhưng phải giữ cấu trúc nhất quán.
+
+Ví dụ:
+
+**Xác thực**
+
+- POST /api/auth/login
+- POST /api/auth/logout
+- GET /api/auth/me
+- POST /api/auth/change-password
+
+**Học sinh**
+
+- GET /api/students
+- POST /api/students
+- GET /api/students/{id}
+- PUT /api/students/{id}
+- POST /api/students/import
+- GET /api/students/export
+
+**Lớp**
+
+- GET /api/classes
+- GET /api/classes/{id}
+- GET /api/classes/{id}/students
+
+**KTX**
+
+- GET /api/dormitory/floors
+- GET /api/dormitory/rooms
+- GET /api/dormitory/rooms/{id}
+- POST /api/dormitory/attendance/sessions
+- POST /api/dormitory/attendance/mark
+- POST /api/dormitory/attendance/mark-all-present
+- POST /api/dormitory/room-reports
+- POST /api/dormitory/floor-reports
+
+**Chế độ sinh hoạt**
+
+- GET /api/regimes
+- GET /api/regimes/current
+- POST /api/regimes/{id}/checklist
+- POST /api/regimes/{id}/complete
+
+**KPI**
+
+- GET /api/kpi/rules
+- POST /api/violations
+- GET /api/violations
+- POST /api/violations/{id}/submit
+- POST /api/violations/{id}/approve
+- POST /api/violations/{id}/reject
+- GET /api/kpi/students/{id}
+- GET /api/kpi/reports
+
+**Đơn xin phép**
+
+- GET /api/leave-requests
+- POST /api/leave-requests
+- POST /api/leave-requests/{id}/approve
+- POST /api/leave-requests/{id}/reject
+
+**Báo cáo**
+
+- GET /api/analytics/school
+- GET /api/analytics/grades
+- GET /api/analytics/classes
+- GET /api/reports/kpi
+- GET /api/reports/discipline
+- POST /api/reports/export
+
+**Quản trị**
+
+- GET /api/admin/users
+- POST /api/admin/users
+- PUT /api/admin/users/{id}
+- GET /api/admin/settings
+- PUT /api/admin/settings
+- GET /api/admin/audit-logs
+
+Mỗi endpoint phải có xác thực, kiểm tra quyền, validation, xử lý lỗi và kiểm thử phù hợp.
+
+Không được chỉ tạo danh sách route giả mà thiếu phần xử lý nghiệp vụ.
+
+# XX. THIẾT KẾ GIAO DIỆN VÀ CẤU TRÚC TRANG
+
+Xây dựng giao diện chuyên nghiệp, dễ sử dụng, có hệ thống.
+
+## 20.1. Khung giao diện
+
+- Sidebar có thể thu gọn.
+- Header chứa tên trường, thông báo và tài khoản.
+- Breadcrumb.
+- Khu vực nội dung.
+- Bộ lọc.
+- Bảng dữ liệu.
+- Modal xác nhận.
+- Toast thông báo.
+- Trạng thái tải dữ liệu.
+- Giao diện responsive.
+
+## 20.2. Danh sách trang tối thiểu
+
+1. Đăng nhập.
+2. Dashboard.
+3. Thống kê toàn trường.
+4. Thống kê theo khối.
+5. Danh sách 54 lớp.
+6. Chi tiết lớp.
+7. Danh sách học sinh.
+8. Hồ sơ học sinh.
+9. Sơ đồ KTX.
+10. Chi tiết phòng.
+11. Điểm danh KTX.
+12. Giao diện trưởng phòng.
+13. Giao diện trưởng tầng.
+14. Lịch sử báo cáo KTX.
+15. Timeline 11 chế độ.
+16. Checklist chế độ sinh hoạt.
+17. Quản lý trực ban.
+18. Sổ vi phạm.
+19. Chi tiết biên bản.
+20. Bảng KPI học sinh.
+21. Bảng KPI lớp.
+22. Xếp hạng thi đua.
+23. Quản lý đơn xin phép.
+24. Chi tiết đơn xin phép.
+25. Báo cáo Excel/CSV.
+26. Mẫu in A4.
+27. Quản lý niên khóa.
+28. Quản lý người dùng.
+29. Phân quyền.
+30. Cấu hình hệ thống.
+31. Nhật ký kiểm toán.
+32. Sao lưu và phục hồi.
+
+Mỗi trang phải hiển thị đúng theo quyền người dùng.
+
+# XXI. DỮ LIỆU DEMO VÀ KHỞI TẠO
+
+Tạo seed dữ liệu phục vụ kiểm thử.
+
+Dữ liệu demo cần bao gồm:
+
+- 54 lớp thuộc ba khối.
+- 1.880 hồ sơ học sinh giả lập nếu phù hợp với khả năng tạo dữ liệu.
+- 699 học sinh nội trú giả lập.
+- 120 phòng KTX.
+- Các vai trò người dùng.
+- 11 chế độ sinh hoạt cấu hình mẫu.
+- 10 mã lỗi KPI.
+- Một số biên bản vi phạm mẫu.
+- Điểm danh mẫu.
+- Báo cáo phòng/tầng mẫu.
+- Đơn xin phép mẫu.
+- Lịch trực mẫu.
+
+Dữ liệu giả lập phải có nhãn rõ ràng, không dùng thông tin cá nhân thật.
+
+Không cần tạo 1.880 bản ghi thủ công. Có thể dùng seed script sinh dữ liệu theo quy tắc và kiểm tra tổng số.
+
+Tạo tài khoản demo riêng cho từng vai trò. Mật khẩu demo phải được ghi trong tài liệu cài đặt nội bộ, không nhúng trong frontend hoặc đưa vào production.
+
+Cung cấp chức năng xóa dữ liệu demo có kiểm soát, không làm ảnh hưởng dữ liệu thật.
+
+# XXII. KIỂM THỬ BẮT BUỘC
+
+Không tuyên bố hoàn thành nếu chưa kiểm thử các nghiệp vụ chính.
+
+## 22.1. Kiểm thử xác thực
+
+- Đăng nhập hợp lệ.
+- Mật khẩu sai.
+- Tài khoản bị khóa.
+- Đổi mật khẩu.
+- Đăng xuất.
+- Phiên đăng nhập hết hạn.
+
+## 22.2. Kiểm thử phân quyền
+
+- GVCN lớp A không thể xem hồ sơ lớp B bằng cách sửa URL.
+- Trưởng phòng A không thể xem dữ liệu phòng B.
+- Trưởng tầng A không thể truy cập tầng B.
+- Người dùng không có quyền không thể gọi trực tiếp API quản trị.
+- Không thể sửa quyền bằng cách thay đổi request frontend.
+
+## 22.3. Kiểm thử điểm danh
+
+- Điểm danh từng người.
+- Đánh dấu đủ mặt.
+- Xử lý ngoại lệ.
+- Chống gửi lặp.
+- Khóa ca điểm danh.
+- Sửa sai có nhật ký.
+- Tổng hợp báo cáo đúng số liệu.
+
+## 22.4. Kiểm thử KPI
+
+- Tính đúng điểm trừ.
+- Không ghi nhận biên bản chưa được duyệt.
+- Không trừ điểm trùng.
+- Xếp loại đúng ngưỡng.
+- Xử lý L10 theo cấu hình đã xác nhận.
+- Tính đúng báo cáo lớp và trường.
+- Không thay đổi kỳ đã khóa trái quyền.
+
+## 22.5. Kiểm thử nhập/xuất
+
+- Nhập file đúng định dạng.
+- Phát hiện dữ liệu trùng.
+- Báo lỗi từng dòng.
+- Xuất CSV có tiếng Việt.
+- Xuất Excel đúng cột.
+- Kiểm tra dữ liệu sau xuất.
+- Không xuất vượt phạm vi quyền.
+
+## 22.6. Kiểm thử toàn hệ thống
+
+- Không còn lỗi TypeScript quan trọng.
+- Không còn lỗi API chưa xử lý.
+- Không còn route chức năng chính chỉ là placeholder.
+- Không có dữ liệu nghiệp vụ bị lưu sai.
+- Có thông báo rõ ràng khi backend hoặc database không kết nối.
+- Các thao tác quan trọng có thể kiểm tra lại qua nhật ký.
+
+Cung cấp tài liệu kết quả kiểm thử và ghi rõ các giới hạn còn tồn tại.
+
+# XXIII. YÊU CẦU VỀ CẤU TRÚC SOURCE CODE
+
+Tổ chức dự án rõ ràng, ví dụ:
+
+```text
+school-management/
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── features/
+│   │   │   ├── dashboard/
+│   │   │   ├── students/
+│   │   │   ├── classes/
+│   │   │   ├── dormitory/
+│   │   │   ├── attendance/
+│   │   │   ├── regimes/
+│   │   │   ├── discipline/
+│   │   │   ├── kpi/
+│   │   │   ├── duty/
+│   │   │   ├── leave/
+│   │   │   ├── reports/
+│   │   │   └── administration/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── types/
+│   │   └── utils/
+│   ├── package.json
+│   └── .env.example
+├── backend/
+│   ├── public/
+│   ├── routes/
+│   ├── app/
+│   │   ├── Controllers/
+│   │   ├── Services/
+│   │   ├── Models/
+│   │   ├── Repositories/
+│   │   ├── Middleware/
+│   │   ├── Validators/
+│   │   └── Support/
+│   ├── config/
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── seeds/
+│   ├── storage/
+│   └── .env.example
+├── database/
+│   └── schema.sql
+├── docs/
+│   ├── INSTALLATION.md
+│   ├── USER_GUIDE.md
+│   ├── API.md
+│   ├── DATABASE.md
+│   ├── PERMISSIONS.md
+│   ├── TEST_REPORT.md
+│   └── BUSINESS_RULES.md
+└── README.md
+```
+
+Có thể điều chỉnh cấu trúc nếu kiến trúc thực tế yêu cầu khác, nhưng phải giữ ranh giới rõ giữa frontend, backend, database và tài liệu.
+
+Không tạo toàn bộ dự án trong một file duy nhất. Không viết các component khổng lồ chứa mọi nghiệp vụ.
+
+# XXIV. QUY TRÌNH THỰC HIỆN CỦA AI CODE
+
+Thực hiện tuần tự theo các giai đoạn sau.
+
+**Giai đoạn 1: Khảo sát và lập kế hoạch**
+
+- Đọc toàn bộ repository hiện có.
+- Đọc file yêu cầu nếu đã được cung cấp.
+- Kiểm tra công nghệ, cấu trúc và môi trường.
+- Xác định chức năng đã có, còn thiếu hoặc đang lỗi.
+- Tạo checklist triển khai.
+- Không ghi đè dự án hiện có một cách tùy tiện.
+
+**Giai đoạn 2: Thiết kế kiến trúc**
+
+- Thiết kế database.
+- Thiết kế API.
+- Xây dựng ma trận phân quyền.
+- Chuẩn hóa quy tắc nghiệp vụ.
+- Tạo migration và seed dữ liệu.
+
+**Giai đoạn 3: Xây dựng nền tảng**
+
+- Cấu hình môi trường.
+- Xác thực.
+- Phân quyền.
+- Layout.
+- Routing.
+- Xử lý lỗi.
+- Kết nối database.
+
+**Giai đoạn 4: Xây dựng nghiệp vụ**
+
+Triển khai lần lượt:
+
+1. Học sinh và lớp.
+2. KTX và phòng.
+3. Điểm danh.
+4. Chế độ sinh hoạt.
+5. Trực ban.
+6. KPI và kỷ luật.
+7. Đơn xin phép.
+8. Báo cáo và thống kê.
+9. Chuyển niên khóa.
+10. Quản trị và cấu hình.
+
+**Giai đoạn 5: Kết nối và kiểm thử**
+
+- Kết nối tất cả màn hình với API.
+- Kiểm tra dữ liệu xuyên suốt các phân hệ.
+- Kiểm thử phân quyền.
+- Kiểm thử nhập/xuất.
+- Sửa lỗi thực tế.
+- Kiểm tra responsive.
+
+**Giai đoạn 6: Hoàn thiện và bàn giao**
+
+- Viết README.
+- Viết hướng dẫn cài đặt.
+- Viết hướng dẫn tạo tài khoản.
+- Viết hướng dẫn nhập dữ liệu thật.
+- Viết hướng dẫn backup/restore.
+- Chuẩn bị file SQL.
+- Chuẩn bị tài liệu API.
+- Báo cáo chức năng đã hoàn thành và chức năng chưa hoàn thành.
+
+# XXV. ĐIỀU KIỆN NGHIỆM THU
+
+Chỉ đánh dấu một chức năng hoàn thành khi:
+
+- Giao diện đã được xây dựng.
+- API tương ứng đã hoạt động.
+- Database lưu dữ liệu đúng.
+- Quyền truy cập đã được kiểm tra.
+- Trạng thái loading, thành công và lỗi đã được xử lý.
+- Nghiệp vụ đã được kiểm thử.
+- Không sử dụng dữ liệu hardcode thay cho dữ liệu thực tế của chức năng.
+
+Các tiêu chí nghiệm thu chính:
+
+1. Đăng nhập và phân quyền đúng sáu vai trò.
+2. Quản lý hồ sơ học sinh và 54 lớp.
+3. Quản lý 120 phòng KTX.
+4. Điểm danh theo phòng và tổng hợp theo tầng.
+5. Hiển thị 11 chế độ sinh hoạt.
+6. Tạo nội dung báo cáo KTX đúng mẫu.
+7. Quản lý trực ban Tòa nhà A.
+8. Quản lý vi phạm L01–L10.
+9. Tính điểm KPI và xếp loại.
+10. Quản lý đơn xin phép.
+11. Thống kê trường, khối và lớp.
+12. Xuất Excel/CSV.
+13. In mẫu báo cáo.
+14. Chuyển niên khóa và lưu trữ lịch sử.
+15. Quản lý cấu hình.
+16. Sao lưu, phục hồi và nhật ký.
+17. Có hướng dẫn cài đặt và kiểm thử.
+
+# XXVI. CÁC ĐIỀU CẤM
+
+- Không chỉ dựng giao diện để trình diễn.
+- Không dùng localStorage làm database chính.
+- Không hardcode toàn bộ danh sách học sinh trong component.
+- Không giả mạo số liệu thực tế.
+- Không tự bịa dữ liệu cá nhân thật.
+- Không để mọi tài khoản có quyền quản trị.
+- Không chỉ ẩn nút mà bỏ qua bảo vệ API.
+- Không lưu mật khẩu dạng văn bản thuần.
+- Không xóa lịch sử KPI khi chuyển niên khóa.
+- Không tự động phê duyệt đơn xin phép.
+- Không tự động áp dụng hình thức kỷ luật chưa được xác nhận.
+- Không tuyên bố gửi Zalo thành công nếu chưa thực sự gửi.
+- Không tạo con dấu hoặc chữ ký chính thức giả.
+- Không để chức năng quan trọng chỉ có giao diện mà không có xử lý.
+- Không tuyên bố hoàn thành khi chưa chạy kiểm thử.
+
+# XXVII. CHỈ THỊ CUỐI CÙNG
+
+Bắt đầu làm việc ngay trên repository hiện có.
+
+Nếu chưa có source code, hãy khởi tạo dự án mới theo kiến trúc đã nêu.
+
+Nếu đã có source code, hãy đọc và đánh giá trước khi chỉnh sửa, bảo toàn các phần đang hoạt động.
+
+Ưu tiên hoàn thành nền tảng dữ liệu, phân quyền và nghiệp vụ trước; sau đó hoàn thiện giao diện và báo cáo.
+
+Các quy tắc chưa được xác nhận phải được đưa vào cấu hình hoặc ghi rõ trong tài liệu cần xác nhận. Không tự biến giả định thành quy định chính thức.
+
+Khi gặp vấn đề kỹ thuật, hãy chủ động tìm giải pháp phù hợp, triển khai và kiểm thử. Chỉ yêu cầu người dùng cung cấp thêm thông tin khi thiếu dữ liệu thực tế hoặc thiếu quyết định nghiệp vụ không thể suy ra an toàn.
+
+**Mục tiêu cuối cùng: bàn giao một hệ thống quản lý học sinh, KTX và KPI rèn luyện có dữ liệu tập trung, nghiệp vụ thực sự hoạt động, phân quyền an toàn, báo cáo chính xác và có thể triển khai trên máy chủ thực tế.**
+
+Hãy bắt đầu bằng việc kiểm tra repository, lập checklist và triển khai giai đoạn 1. Không dừng lại ở việc đưa ra kế hoạch; tiếp tục thực hiện các giai đoạn còn lại trong phạm vi môi trường cho phép, kiểm thử và báo cáo trung thực kết quả cuối cùng.

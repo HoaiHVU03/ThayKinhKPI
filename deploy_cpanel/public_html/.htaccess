@@ -1,0 +1,21 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Chuyển hướng toàn bộ các request /api sang api.php
+  RewriteRule ^api/(.*)$ api.php [QSA,L]
+  RewriteRule ^api$ api.php [QSA,L]
+
+  # 2. Nếu là file hoặc thư mục tĩnh thực tế (js, css, ảnh, fonts...) thì phục vụ trực tiếp
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 3. Tất cả các đường dẫn giao diện SPA (React Router) định tuyến về index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Cấu hình nén GZIP tăng tốc độ tải trang
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json image/svg+xml
+</IfModule>
