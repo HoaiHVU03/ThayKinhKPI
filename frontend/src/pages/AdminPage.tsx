@@ -348,7 +348,7 @@ export const AdminPage: React.FC = () => {
     try {
       const payload = {
         ...newUser,
-        scope_type: newUser.role === 'room_leader' ? 'room' : newUser.role === 'floor_leader' ? 'floor' : newUser.role === 'homeroom_teacher' ? 'class' : '',
+        scope_type: (newUser.role === 'homeroom_teacher' || newUser.role === 'class_cadre') ? 'class' : newUser.role === 'room_leader' ? 'room' : newUser.role === 'floor_leader' ? 'floor' : '',
         scope_id: newUser.scope_id || null,
         avatar_url: newUser.avatar_url || null,
       };
@@ -391,7 +391,7 @@ export const AdminPage: React.FC = () => {
       role: u.role,
       status: u.status,
       new_password: '',
-      scope_type: (u as any).scope_type || (u.role === 'room_leader' ? 'room' : u.role === 'floor_leader' ? 'floor' : u.role === 'homeroom_teacher' ? 'class' : ''),
+      scope_type: (u as any).scope_type || ((u.role === 'homeroom_teacher' || u.role === 'class_cadre') ? 'class' : u.role === 'room_leader' ? 'room' : u.role === 'floor_leader' ? 'floor' : ''),
       scope_id: (u as any).scope_id ? String((u as any).scope_id) : '',
       avatar_url: (u as any).avatar_url || '',
     });
@@ -404,7 +404,7 @@ export const AdminPage: React.FC = () => {
     try {
       const payload = {
         ...editUserForm,
-        scope_type: editUserForm.role === 'room_leader' ? 'room' : editUserForm.role === 'floor_leader' ? 'floor' : editUserForm.role === 'homeroom_teacher' ? 'class' : '',
+        scope_type: (editUserForm.role === 'homeroom_teacher' || editUserForm.role === 'class_cadre') ? 'class' : editUserForm.role === 'room_leader' ? 'room' : editUserForm.role === 'floor_leader' ? 'floor' : '',
         scope_id: editUserForm.scope_id || null,
       };
       await api.put(`/admin/users/${editingUser.id}`, payload);
@@ -517,12 +517,14 @@ export const AdminPage: React.FC = () => {
   };
 
   const roleMap: Record<string, string> = {
-    admin: 'BGH / Quản trị',
-    dorm_manager: 'Quản sinh KTX',
+    admin: '1. Admin (Quản trị)',
+    dorm_manager: '2. Quản sinh KTX',
+    homeroom_teacher: '3. GVCN lớp',
+    class_cadre: '4. LT BT (Lớp trưởng / Bí thư)',
+    student: '5. Học sinh (Chỉ xem)',
     floor_leader: 'Trưởng tầng KTX',
     room_leader: 'Trưởng phòng KTX',
     youth_union: 'Đoàn trường',
-    homeroom_teacher: 'GVCN',
   };
 
   return (
@@ -2013,22 +2015,45 @@ export const AdminPage: React.FC = () => {
                 setNewUser({
                   ...newUser,
                   role: nextRole,
-                  scope_type: nextRole === 'room_leader' ? 'room' : nextRole === 'floor_leader' ? 'floor' : nextRole === 'homeroom_teacher' ? 'class' : '',
+                  scope_type: (nextRole === 'homeroom_teacher' || nextRole === 'class_cadre') ? 'class' : nextRole === 'room_leader' ? 'room' : nextRole === 'floor_leader' ? 'floor' : '',
                   scope_id: nextRole === 'floor_leader' ? '2' : '',
                 });
               }}
               className="w-full p-2 border border-slate-300 rounded-lg bg-white font-semibold text-slate-800"
             >
-              <option value="room_leader">Trưởng phòng KTX (Quản lý 1 phòng KTX)</option>
-              <option value="floor_leader">Trưởng tầng KTX (Quản lý 1 tầng 24 phòng)</option>
-              <option value="homeroom_teacher">Giáo viên chủ nhiệm (GVCN lớp)</option>
-              <option value="dorm_manager">Quản sinh KTX (Toàn bộ 120 phòng)</option>
+              <option value="admin">1. Admin (Ban Giám hiệu / Quản trị viên — Toàn quyền xem và sửa)</option>
+              <option value="dorm_manager">2. Quản sinh KTX (Toàn bộ 112 phòng nội trú)</option>
+              <option value="homeroom_teacher">3. Giáo viên chủ nhiệm (GVCN lớp)</option>
+              <option value="class_cadre">4. Lớp trưởng / Bí thư (LT BT — Điểm danh lớp)</option>
+              <option value="student">5. Học sinh (Chỉ có quyền xem — Read-only)</option>
+              <option value="floor_leader">Trưởng tầng KTX</option>
+              <option value="room_leader">Trưởng phòng KTX</option>
               <option value="youth_union">Đoàn Thanh niên / Chi đoàn cờ đỏ</option>
-              <option value="admin">Ban Giám hiệu / Quản trị viên</option>
             </select>
           </div>
 
           {/* Conditional Scope Assignment: Gán phòng KTX, tầng hoặc lớp */}
+          {(newUser.role === 'homeroom_teacher' || newUser.role === 'class_cadre') && (
+            <div className="p-3 bg-purple-50/80 rounded-xl border-2 border-purple-200 space-y-1.5">
+              <label className="block font-bold text-purple-900 text-xs">
+                🎓 Gán lớp phụ trách / Lớp sinh hoạt (*)
+              </label>
+              <select
+                required
+                value={newUser.scope_id}
+                onChange={(e) => setNewUser({ ...newUser, scope_id: e.target.value, scope_type: 'class' })}
+                className="w-full p-2 border border-purple-300 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">-- Chọn 1 trong 54 lớp chuyên --</option>
+                {classesList.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code}) - Khối {c.grade_level} (GVCN: {c.teacher_name || 'Đang cập nhật'})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-purple-700">Tài khoản sẽ được phân quyền truy cập và quản lý dữ liệu trong phạm vi lớp này.</p>
+            </div>
+          )}
           {newUser.role === 'room_leader' && (
             <div className="p-3 bg-blue-50/80 rounded-xl border-2 border-blue-200 space-y-1.5">
               <label className="block font-bold text-blue-900 text-xs">
@@ -2218,17 +2243,19 @@ export const AdminPage: React.FC = () => {
                   setEditUserForm({
                     ...editUserForm,
                     role: nextRole,
-                    scope_type: nextRole === 'room_leader' ? 'room' : nextRole === 'floor_leader' ? 'floor' : nextRole === 'homeroom_teacher' ? 'class' : '',
+                    scope_type: (nextRole === 'homeroom_teacher' || nextRole === 'class_cadre') ? 'class' : nextRole === 'room_leader' ? 'room' : nextRole === 'floor_leader' ? 'floor' : '',
                   });
                 }}
                 className="w-full p-2 border border-slate-300 rounded-lg bg-white font-semibold text-slate-800"
               >
-                <option value="room_leader">Trưởng phòng KTX</option>
+                <option value="admin">1. Admin (Ban Giám hiệu / Quản trị viên)</option>
+                <option value="dorm_manager">2. Quản sinh KTX</option>
+                <option value="homeroom_teacher">3. Giáo viên chủ nhiệm (GVCN)</option>
+                <option value="class_cadre">4. Lớp trưởng / Bí thư (LT BT)</option>
+                <option value="student">5. Học sinh (Chỉ xem)</option>
                 <option value="floor_leader">Trưởng tầng KTX</option>
-                <option value="homeroom_teacher">Giáo viên chủ nhiệm (GVCN)</option>
-                <option value="dorm_manager">Quản sinh KTX</option>
+                <option value="room_leader">Trưởng phòng KTX</option>
                 <option value="youth_union">Đoàn Thanh niên / Chi đoàn</option>
-                <option value="admin">Ban Giám hiệu / Quản trị viên</option>
               </select>
             </div>
             <div>
@@ -2286,10 +2313,10 @@ export const AdminPage: React.FC = () => {
             </div>
           )}
 
-          {editUserForm.role === 'homeroom_teacher' && (
+          {(editUserForm.role === 'homeroom_teacher' || editUserForm.role === 'class_cadre') && (
             <div className="p-3 bg-purple-50/80 rounded-xl border-2 border-purple-200 space-y-1.5">
               <label className="block font-bold text-purple-900 text-xs">
-                🎓 Gán lớp chuyên chủ nhiệm (*)
+                🎓 Gán lớp phụ trách / Lớp sinh hoạt (*)
               </label>
               <select
                 required
@@ -2298,9 +2325,9 @@ export const AdminPage: React.FC = () => {
                 className="w-full p-2 border border-purple-300 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">-- Chọn 1 trong 54 lớp chuyên --</option>
-                {classesList.map((c) => (
+                {classesList.map((c: any) => (
                   <option key={c.id} value={c.id}>
-                    {c.code}: {c.name} (Khối {c.grade_level})
+                    {c.name} ({c.code}) - Khối {c.grade_level} (GVCN: {c.teacher_name || 'Đang cập nhật'})
                   </option>
                 ))}
               </select>

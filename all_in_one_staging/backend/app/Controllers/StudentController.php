@@ -33,7 +33,7 @@ class StudentController {
         $isScopedRoom = false;
         $isScopedFloor = false;
 
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope) {
                 $where[] = "s.class_id = ?";
@@ -154,7 +154,7 @@ class StudentController {
         }
 
         // Scope validation
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && (int)$student['class_id'] !== $classScope) {
                 Response::forbidden('Bạn chỉ có quyền xem hồ sơ học sinh thuộc lớp của mình');
@@ -196,6 +196,10 @@ class StudentController {
     }
 
     public function store(Request $request): void {
+        if (!AuthMiddleware::requireAdmin('Chỉ Quản trị viên mới có quyền thêm hồ sơ học sinh')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $code = trim($request->input('code', ''));
         $fullName = trim($request->input('full_name', ''));
@@ -246,6 +250,10 @@ class StudentController {
     }
 
     public function update(Request $request, string $id): void {
+        if (!AuthMiddleware::requireAdmin('Chỉ Quản trị viên mới có quyền cập nhật hồ sơ học sinh')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $fullName = trim($request->input('full_name', ''));
         $dob = $request->input('dob');
@@ -271,6 +279,10 @@ class StudentController {
     }
 
     public function import(Request $request): void {
+        if (!AuthMiddleware::requireAdmin('Chỉ Quản trị viên mới có quyền nhập dữ liệu học sinh từ Excel')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $items = $request->input('items', []);
 

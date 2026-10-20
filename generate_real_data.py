@@ -570,7 +570,7 @@ users_list.append({
     'status': 'active'
 })
 
-# 3. Thầy Kính (Phó Hiệu trưởng phụ trách KPI & KTX)
+# 3. Thầy Kính (Phó Hiệu trưởng phụ trách KPI & KTX - Quản trị hệ thống)
 users_list.append({
     'id': 3,
     'username': 'thaykinh',
@@ -578,7 +578,7 @@ users_list.append({
     'full_name': 'Thầy Nguyễn Văn Kính (Phó Hiệu trưởng)',
     'email': 'thaykinh@hungvuong.edu.vn',
     'phone': '0912345679',
-    'role': 'dorm_manager',
+    'role': 'admin',
     'status': 'active'
 })
 
@@ -614,7 +614,7 @@ for fl in floors_list:
         'scope_id': fl['floor_number']
     })
 
-# 54 GVCN
+# 54 GVCN (Giáo viên chủ nhiệm 54 lớp)
 for tc in teachers_list:
     u_tc_id = len(users_list) + 1
     cls = [c for c in classes_list if c['homeroom_teacher_id'] == tc['id']][0]
@@ -623,7 +623,7 @@ for tc in teachers_list:
         'id': u_tc_id,
         'username': username,
         'password_hash': PASSWORD_HASH,
-        'full_name': tc['full_name'],
+        'full_name': tc['full_name'] + f" (GVCN {cls['code']})",
         'email': tc['email'],
         'phone': tc['phone'],
         'role': 'homeroom_teacher',
@@ -635,6 +635,44 @@ for tc in teachers_list:
         'scope_type': 'class',
         'scope_id': cls['id']
     })
+
+# 54 LT BT (Lớp trưởng / Bí thư - Ban Cán Sự 54 lớp chuyên)
+for cls in classes_list:
+    u_ltbt_id = len(users_list) + 1
+    username = 'ltbt_' + cls['code'].lower()
+    users_list.append({
+        'id': u_ltbt_id,
+        'username': username,
+        'password_hash': PASSWORD_HASH,
+        'full_name': f"Ban Cán Sự {cls['name']} (Lớp trưởng / Bí thư)",
+        'email': f"{username}@hungvuong.edu.vn",
+        'phone': '0981112233',
+        'role': 'class_cadre',
+        'status': 'active'
+    })
+    scopes_list.append({
+        'user_id': u_ltbt_id,
+        'scope_type': 'class',
+        'scope_id': cls['id']
+    })
+
+# 1 Tài khoản Học sinh mẫu (Chỉ có quyền xem)
+u_hs_id = len(users_list) + 1
+users_list.append({
+    'id': u_hs_id,
+    'username': 'hocsinh',
+    'password_hash': PASSWORD_HASH,
+    'full_name': 'Học sinh THPT Chuyên Hùng Vương (Tài khoản xem)',
+    'email': 'hocsinh@hungvuong.edu.vn',
+    'phone': '0988001122',
+    'role': 'student',
+    'status': 'active'
+})
+scopes_list.append({
+    'user_id': u_hs_id,
+    'scope_type': 'class',
+    'scope_id': classes_list[0]['id']
+})
 
 # Trưởng phòng KTX (TP)
 seen_usernames = set(u['username'] for u in users_list)

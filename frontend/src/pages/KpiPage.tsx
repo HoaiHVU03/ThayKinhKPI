@@ -67,6 +67,12 @@ const sampleViolationTemplate = [
 
 export const KpiPage: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isDormManager = user?.role === 'dorm_manager';
+  const isHomeroomTeacher = user?.role === 'homeroom_teacher';
+  const canCreateViolation = isAdmin || isDormManager || isHomeroomTeacher;
+  const canManageViolations = isAdmin || isDormManager;
+
   const [rules, setRules] = useState<KpiRule[]>([]);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [disciplineLevels, setDisciplineLevels] = useState<any[]>([]);
@@ -478,18 +484,22 @@ export const KpiPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setImportViolationModalOpen(true)}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Upload className="w-4 h-4 text-[#0e3a7c]" /> Nhập Excel vi phạm
-          </button>
-          <button
-            onClick={handleOpenCreateViolationModal}
-            className="px-4 py-2 bg-[#d32027] hover:bg-[#b91c1c] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> Lập biên bản vi phạm
-          </button>
+          {canManageViolations && (
+            <button
+              onClick={() => setImportViolationModalOpen(true)}
+              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Upload className="w-4 h-4 text-[#0e3a7c]" /> Nhập Excel vi phạm
+            </button>
+          )}
+          {canCreateViolation && (
+            <button
+              onClick={handleOpenCreateViolationModal}
+              className="px-4 py-2 bg-[#d32027] hover:bg-[#b91c1c] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Lập biên bản vi phạm
+            </button>
+          )}
         </div>
       </div>
 
@@ -503,12 +513,14 @@ export const KpiPage: React.FC = () => {
             <span className="text-[11px] text-slate-500 hidden sm:inline">
               Trường THPT Chuyên Hùng Vương
             </span>
-            <button
-              onClick={() => setCreateRuleModalOpen(true)}
-              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#0e3a7c] border border-blue-200 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" /> Thêm quy định
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setCreateRuleModalOpen(true)}
+                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#0e3a7c] border border-blue-200 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Thêm quy định
+              </button>
+            )}
           </div>
         </div>
 
@@ -525,20 +537,24 @@ export const KpiPage: React.FC = () => {
                     <span className="text-xs font-extrabold text-[#d32027] bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
                       -{r.deduction_points} đ
                     </span>
-                    <button
-                      onClick={() => handleOpenEditRule(r)}
-                      className="text-slate-400 hover:text-amber-700 p-0.5 rounded cursor-pointer"
-                      title="Sửa quy định"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRule(r)}
-                      className="text-slate-400 hover:text-red-600 p-0.5 rounded cursor-pointer"
-                      title="Xóa quy định"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEditRule(r)}
+                          className="text-slate-400 hover:text-amber-700 p-0.5 rounded cursor-pointer"
+                          title="Sửa quy định"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRule(r)}
+                          className="text-slate-400 hover:text-red-600 p-0.5 rounded cursor-pointer"
+                          title="Xóa quy định"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="text-xs font-bold text-slate-800 mt-1 line-clamp-2" title={r.name}>
@@ -842,7 +858,7 @@ export const KpiPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {v.status === 'pending' && ['admin', 'dorm_manager', 'youth_union'].includes(user?.role || '') && (
+                          {v.status === 'pending' && canCreateViolation && (
                             <>
                               <button
                                 onClick={() => handleApprove(v.id)}
@@ -858,20 +874,24 @@ export const KpiPage: React.FC = () => {
                               </button>
                             </>
                           )}
-                          <button
-                            onClick={() => handleOpenEditViolation(v)}
-                            className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded cursor-pointer"
-                            title="Chỉnh sửa biên bản"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteViolation(v)}
-                            className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
-                            title="Xóa biên bản"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {canManageViolations && (
+                            <>
+                              <button
+                                onClick={() => handleOpenEditViolation(v)}
+                                className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded cursor-pointer"
+                                title="Chỉnh sửa biên bản"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteViolation(v)}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                                title="Xóa biên bản"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -35,8 +35,8 @@ class KpiController {
         $where = ['1=1'];
         $params = [];
 
-        // Scoping: homeroom teacher only sees their class violations; room_leader sees room; floor_leader sees floor
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        // Scoping: homeroom teacher, class cadre, or student only sees their class violations
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope) {
                 $where[] = "v.class_id = ?";
@@ -132,6 +132,11 @@ class KpiController {
     public function createViolation(Request $request): void {
         $db = Database::getConnection();
         $user = AuthMiddleware::$currentUser;
+
+        if ($user && in_array($user['role'], ['student', 'class_cadre'])) {
+            Response::forbidden('Học sinh và Ban cán sự lớp không có thẩm quyền lập biên bản vi phạm');
+            return;
+        }
 
         $studentId = (int)$request->input('student_id');
         $ruleId = (int)$request->input('rule_id');

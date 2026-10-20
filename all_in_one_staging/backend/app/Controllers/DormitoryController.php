@@ -575,6 +575,10 @@ class DormitoryController {
     }
 
     public function storeRoom(Request $request): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền tạo phòng KTX')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $code = trim($request->input('code', ''));
         $floorNumber = (int)$request->input('floor_number', 1);
@@ -600,6 +604,10 @@ class DormitoryController {
     }
 
     public function updateRoom(Request $request, string $id): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền cập nhật phòng KTX')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $floorNumber = (int)$request->input('floor_number');
         $gender = $request->input('gender');
@@ -625,6 +633,10 @@ class DormitoryController {
     }
 
     public function destroyRoom(Request $request, string $id): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền xóa phòng KTX')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $room = $db->query("SELECT * FROM dormitory_rooms WHERE id = " . (int)$id)->fetch();
         if (!$room) {
@@ -647,6 +659,10 @@ class DormitoryController {
     }
 
     public function removeStudent(Request $request, string $id): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền làm thủ tục rời phòng')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $studentId = (int)$request->input('student_id');
 

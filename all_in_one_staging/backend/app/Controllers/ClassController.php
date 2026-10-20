@@ -19,7 +19,7 @@ class ClassController {
         $params = [];
 
         // Role-based scoping
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope) {
                 $where[] = "c.id = ?";
@@ -67,10 +67,10 @@ class ClassController {
 
     public function show(Request $request, string $id): void {
         $user = AuthMiddleware::$currentUser;
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && (int)$id !== $classScope) {
-                Response::forbidden('Bạn chỉ có quyền xem thông tin của lớp mình phụ trách');
+                Response::forbidden('Bạn chỉ có quyền xem thông tin của lớp mình');
                 return;
             }
         } elseif ($user && in_array($user['role'], ['room_leader', 'floor_leader'])) {
@@ -102,10 +102,10 @@ class ClassController {
 
     public function students(Request $request, string $id): void {
         $user = AuthMiddleware::$currentUser;
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && (int)$id !== $classScope) {
-                Response::forbidden('Bạn chỉ có quyền xem học sinh của lớp mình phụ trách');
+                Response::forbidden('Bạn chỉ có quyền xem học sinh của lớp mình');
                 return;
             }
         } elseif ($user && in_array($user['role'], ['room_leader', 'floor_leader'])) {
@@ -180,9 +180,7 @@ class ClassController {
     }
 
     public function changeTeacher(Request $request, string $id): void {
-        $user = AuthMiddleware::$currentUser;
-        if (!$user || !in_array($user['role'], ['admin', 'dorm_manager'])) {
-            Response::forbidden('Chỉ Quản trị viên hoặc Ban Giám hiệu mới có quyền thay đổi Giáo viên chủ nhiệm');
+        if (!AuthMiddleware::requireAdmin('Chỉ Quản trị viên mới có quyền thay đổi Giáo viên chủ nhiệm')) {
             return;
         }
 

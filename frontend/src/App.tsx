@@ -73,7 +73,7 @@ export const App: React.FC = () => {
             <Route
               path="/classes"
               element={
-                <RoleRoute allowedRoles={['admin', 'homeroom_teacher', 'youth_union', 'dorm_manager']}>
+                <RoleRoute allowedRoles={['admin', 'homeroom_teacher', 'class_cadre', 'youth_union', 'dorm_manager']}>
                   <ClassesPage />
                 </RoleRoute>
               }
@@ -83,7 +83,7 @@ export const App: React.FC = () => {
             <Route
               path="/class-attendance"
               element={
-                <RoleRoute allowedRoles={['admin', 'homeroom_teacher', 'youth_union', 'dorm_manager']}>
+                <RoleRoute allowedRoles={['admin', 'homeroom_teacher', 'class_cadre', 'student', 'youth_union', 'dorm_manager']}>
                   <ClassAttendancePage />
                 </RoleRoute>
               }

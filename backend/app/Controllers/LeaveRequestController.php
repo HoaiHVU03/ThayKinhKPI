@@ -24,7 +24,7 @@ class LeaveRequestController {
 
         // Role-based scoping
         $user = AuthMiddleware::$currentUser;
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope) {
                 $where[] = "s.class_id = ?";

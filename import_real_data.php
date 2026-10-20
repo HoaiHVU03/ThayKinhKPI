@@ -132,6 +132,11 @@ echo '<p>Kích thước file SQL: <b>' . number_format(filesize($sqlFile)) . ' b
 $sql = file_get_contents($sqlFile);
 $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
+// Đảm bảo cột role trong bảng users hỗ trợ đủ 5 nhóm vai trò mới
+try {
+    $pdo->exec("ALTER TABLE `users` MODIFY COLUMN `role` ENUM('admin', 'dorm_manager', 'homeroom_teacher', 'class_cadre', 'student', 'room_leader', 'floor_leader', 'youth_union') NOT NULL DEFAULT 'student'");
+} catch (PDOException $e) {}
+
 $statements = preg_split('/;\s*[\r\n]+/', $sql);
 $executed = 0;
 $errors = 0;

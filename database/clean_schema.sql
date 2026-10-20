@@ -14,7 +14,7 @@ CREATE TABLE `users` (
   `full_name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(100) NULL,
   `phone` VARCHAR(20) NULL,
-  `role` ENUM('admin', 'dorm_manager', 'room_leader', 'floor_leader', 'youth_union', 'homeroom_teacher') NOT NULL DEFAULT 'homeroom_teacher',
+  `role` ENUM('admin', 'dorm_manager', 'homeroom_teacher', 'class_cadre', 'student', 'room_leader', 'floor_leader', 'youth_union') NOT NULL DEFAULT 'student',
   `status` ENUM('active', 'locked') NOT NULL DEFAULT 'active',
   `avatar_url` VARCHAR(255) NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -64,12 +64,11 @@ export const LoginPage: React.FC = () => {
   const isHungVuong = currentSchoolCode === 'chuyenhungvuong' || currentSchoolCode === 'default';
 
   const chvQuickRoles = [
-    { label: 'BGH / Quản trị', role: 'admin', user: 'admin', pass: 'password123' },
-    { label: 'Quản sinh KTX', role: 'dorm_manager', user: 'quan_sinh', pass: 'password123' },
-    { label: 'Trưởng tầng 2', role: 'floor_leader', user: 'truong_tang_2', pass: 'password123' },
-    { label: 'Trưởng phòng 201', role: 'room_leader', user: 'tp_p201', pass: 'password123' },
-    { label: 'Đoàn trường', role: 'youth_union', user: 'chi_doan', pass: 'password123' },
-    { label: 'GVCN 10 Toán 1', role: 'homeroom_teacher', user: 'gvcn_10ton1', pass: 'password123' },
+    { label: '1. Admin (Quản trị)', role: 'admin', user: 'admin', pass: 'password123' },
+    { label: '2. Quản sinh KTX', role: 'dorm_manager', user: 'quan_sinh', pass: 'password123' },
+    { label: '3. GVCN 10 Toán 1', role: 'homeroom_teacher', user: 'gv_10t1', pass: 'password123' },
+    { label: '4. LT BT 10 Toán 1', role: 'class_cadre', user: 'ltbt_10t1', pass: 'password123' },
+    { label: '5. Học sinh (Chỉ xem)', role: 'student', user: 'hocsinh', pass: 'password123' },
   ];
 
   const handleNameChange = (val: string) => {

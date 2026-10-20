@@ -3,10 +3,12 @@
 export type Role = 
   | 'admin' 
   | 'dorm_manager' 
+  | 'homeroom_teacher'
+  | 'class_cadre'
+  | 'student'
   | 'room_leader' 
   | 'floor_leader' 
-  | 'youth_union' 
-  | 'homeroom_teacher';
+  | 'youth_union';
 
 export interface UserScope {
   scope_type: 'class' | 'room' | 'floor';

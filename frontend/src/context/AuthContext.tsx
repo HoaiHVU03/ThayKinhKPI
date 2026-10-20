@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const canAccessClass = (classId: number): boolean => {
     if (!user) return false;
     if (['admin', 'dorm_manager', 'youth_union'].includes(user.role)) return true;
-    if (user.role === 'homeroom_teacher') {
+    if (user.role === 'homeroom_teacher' || user.role === 'class_cadre' || user.role === 'student') {
       return user.scopes?.some(s => s.scope_type === 'class' && s.scope_id === classId) ?? false;
     }
     return false;

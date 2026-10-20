@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import type { Student, ClassInfo } from '../types';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
@@ -77,6 +78,8 @@ const sampleStudentTemplate = [
 ];
 
 export const StudentsPage: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<ClassInfo[]>([]);
@@ -288,18 +291,22 @@ export const StudentsPage: React.FC = () => {
           >
             <Download className="w-3.5 h-3.5 text-slate-500" /> Xuất CSV
           </button>
-          <button
-            onClick={() => setImportModalOpen(true)}
-            className="flex-1 sm:flex-none justify-center px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 shadow-2xs flex items-center gap-1.5 cursor-pointer touch-action-manipulation"
-          >
-            <Upload className="w-3.5 h-3.5 text-slate-500" /> Nhập Excel
-          </button>
-          <button
-            onClick={() => setAddModalOpen(true)}
-            className="flex-1 sm:flex-none justify-center px-3 py-1.5 sm:py-2 bg-[#0e3a7c] hover:bg-[#0a2754] text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer touch-action-manipulation"
-          >
-            <Plus className="w-3.5 h-3.5" /> Thêm HS
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setImportModalOpen(true)}
+                className="flex-1 sm:flex-none justify-center px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 shadow-2xs flex items-center gap-1.5 cursor-pointer touch-action-manipulation"
+              >
+                <Upload className="w-3.5 h-3.5 text-slate-500" /> Nhập Excel
+              </button>
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="flex-1 sm:flex-none justify-center px-3 py-1.5 sm:py-2 bg-[#0e3a7c] hover:bg-[#0a2754] text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer touch-action-manipulation"
+              >
+                <Plus className="w-3.5 h-3.5" /> Thêm HS
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -471,20 +478,24 @@ export const StudentsPage: React.FC = () => {
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => handleOpenEdit(st)}
-                          className="px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1"
-                          title="Sửa hồ sơ"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteStudent(st)}
-                          className="px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1"
-                          title="Xóa học sinh"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEdit(st)}
+                              className="px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1"
+                              title="Sửa hồ sơ"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStudent(st)}
+                              className="px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1"
+                              title="Xóa học sinh"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -586,13 +597,15 @@ export const StudentsPage: React.FC = () => {
 
             {/* Actions */}
             <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => handleDeleteStudent(selectedStudent)}
-                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-lg border border-red-200 cursor-pointer inline-flex items-center gap-1.5"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Xóa học sinh này
-              </button>
+              {isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteStudent(selectedStudent)}
+                  className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-lg border border-red-200 cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Xóa học sinh này
+                </button>
+              ) : <div />}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -611,15 +624,17 @@ export const StudentsPage: React.FC = () => {
                 >
                   Đóng
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleOpenEdit(selectedStudent);
-                  }}
-                  className="px-4 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  <Edit className="w-3.5 h-3.5" /> Chỉnh sửa hồ sơ
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleOpenEdit(selectedStudent);
+                    }}
+                    className="px-4 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <Edit className="w-3.5 h-3.5" /> Chỉnh sửa hồ sơ
+                  </button>
+                )}
               </div>
             </div>
           </div>

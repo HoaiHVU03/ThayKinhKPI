@@ -30,12 +30,14 @@ import { SchoolLogo } from './SchoolLogo';
 import { LeaveTickerBanner } from './LeaveTickerBanner';
 
 const roleLabels: Record<string, { label: string; color: string }> = {
-  admin: { label: 'BGH / Quản trị viên', color: 'bg-red-100 text-red-800 border-red-200' },
+  admin: { label: 'Admin (Toàn quyền)', color: 'bg-red-100 text-red-800 border-red-200' },
   dorm_manager: { label: 'Quản sinh KTX', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  homeroom_teacher: { label: 'Giáo viên chủ nhiệm (GVCN)', color: 'bg-sky-100 text-sky-800 border-sky-200' },
+  class_cadre: { label: 'Lớp trưởng / Bí thư (LT BT)', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  student: { label: 'Học sinh (Chỉ xem)', color: 'bg-purple-100 text-purple-800 border-purple-200' },
   floor_leader: { label: 'Trưởng tầng KTX', color: 'bg-amber-100 text-amber-800 border-amber-200' },
   room_leader: { label: 'Trưởng phòng KTX', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
   youth_union: { label: 'Đoàn Thanh niên', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  homeroom_teacher: { label: 'Giáo viên chủ nhiệm', color: 'bg-sky-100 text-sky-800 border-sky-200' },
 };
 
 export const Layout: React.FC = () => {
@@ -137,6 +139,24 @@ export const Layout: React.FC = () => {
           { to: '/reports', label: 'Ma trận lỗi & xếp hạng', icon: TableProperties },
           { to: '/official-document', label: 'Mẫu in báo cáo A4', icon: Printer },
           { to: '/students', label: 'Tra cứu học sinh', icon: Users },
+        ];
+
+      case 'class_cadre':
+        return [
+          { to: '/dashboard', label: 'Dashboard lớp', icon: LayoutDashboard },
+          { to: '/class-attendance', label: 'Điểm danh lớp đầu giờ', icon: CalendarCheck2 },
+          { to: '/classes', label: scopeName ? `Lớp ${scopeName}` : 'Thông tin lớp', icon: GraduationCap },
+          { to: '/students', label: 'Danh sách bạn học', icon: Users },
+          { to: '/kpi', label: 'Thi đua KPI lớp', icon: Award },
+        ];
+
+      case 'student':
+        return [
+          { to: '/dashboard', label: 'Dashboard cá nhân', icon: LayoutDashboard },
+          { to: '/kpi', label: 'Bảng thi đua & KPI', icon: Award },
+          { to: '/class-attendance', label: 'Lịch sử chuyên cần', icon: CalendarCheck2 },
+          { to: '/regimes', label: '11 chế độ sinh hoạt', icon: Clock },
+          { to: '/leaves', label: 'Đơn xin phép nghỉ', icon: FileText },
         ];
 
       default:
