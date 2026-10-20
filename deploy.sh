@@ -6,8 +6,6 @@
 #   ./deploy --db        (Cập nhật web + chạy nạp lại CSDL thật)
 # ==============================================================================
 
-set -e
-
 # Màu sắc hiển thị terminal
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -33,7 +31,7 @@ if [ -d ".git" ]; then
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
     git fetch origin "$CURRENT_BRANCH" 2>/dev/null || true
     git pull origin "$CURRENT_BRANCH" || {
-        echo -e "${YELLOW}[Cảnh báo] git pull gặp sự cố (có thể do xung đột hoặc chưa cấu hình remote). Tiếp tục triển khai từ mã nguồn hiện có...${NC}"
+        echo -e "${YELLOW}[Cảnh báo] git pull gặp sự cố hoặc đã cập nhật mới nhất. Tiếp tục triển khai...${NC}"
     }
 else
     echo -e "${YELLOW}[2/5] Không phát hiện thư mục .git tại đây, bỏ qua git pull.${NC}"
@@ -82,15 +80,45 @@ if [ "$SOURCE_DIR" != "$TARGET_DIR" ] && [ -n "$SOURCE_DIR" ]; then
     # Tạo thư mục đích nếu chưa có
     mkdir -p "$TARGET_DIR"
 
-    # Sao chép toàn bộ file và thư mục
-    cp -r "$SOURCE_DIR"/* "$TARGET_DIR"/
-    # Sao chép các file ẩn như .htaccess
-    cp -r "$SOURCE_DIR"/.[!.]* "$TARGET_DIR"/ 2>/dev/null || true
+    # Nới lỏng quyền thư mục uploads nếu có để tránh lỗi Permission denied
+    chmod -R 777 "$TARGET_DIR/backend/public/uploads" 2>/dev/null || true
+
+    # Kiểm tra rsync trên cPanel
+    if command -v rsync >/dev/null 2>&1; then
+        echo -e "${GREEN}   -> Sử dụng rsync đồng bộ an toàn (bảo vệ thư mục uploads và env.php)...${NC}"
+        rsync -rlptD --exclude='backend/public/uploads' --exclude='backend/config/env.php' "$SOURCE_DIR/" "$TARGET_DIR/" 2>/dev/null || true
+    else
+        echo -e "${GREEN}   -> Đồng bộ các thành phần ứng dụng vào $TARGET_DIR...${NC}"
+        # Sao chép Frontend & assets
+        cp -rf "$SOURCE_DIR"/assets "$TARGET_DIR"/ 2>/dev/null || true
+        cp -rf "$SOURCE_DIR"/logos "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/index.html "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/.htaccess "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/api.php "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/check.php "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/favicon.svg "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/icons.svg "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/logo.* "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/database_chuyenhungvuong.sql "$TARGET_DIR"/ 2>/dev/null || true
+        cp -f "$SOURCE_DIR"/import_real_data.php "$TARGET_DIR"/ 2>/dev/null || true
+
+        # Sao chép Backend (bỏ qua uploads để không bị lỗi permission denied do webserver tạo)
+        mkdir -p "$TARGET_DIR/backend"
+        cp -rf "$SOURCE_DIR"/backend/app "$TARGET_DIR"/backend/ 2>/dev/null || true
+        cp -rf "$SOURCE_DIR"/backend/database "$TARGET_DIR"/backend/ 2>/dev/null || true
+        cp -rf "$SOURCE_DIR"/backend/scripts "$TARGET_DIR"/backend/ 2>/dev/null || true
+        mkdir -p "$TARGET_DIR/backend/config"
+        cp -f "$SOURCE_DIR"/backend/config/database.php "$TARGET_DIR"/backend/config/ 2>/dev/null || true
+        mkdir -p "$TARGET_DIR/backend/public"
+        cp -f "$SOURCE_DIR"/backend/public/index.php "$TARGET_DIR"/backend/public/ 2>/dev/null || true
+        cp -rf "$SOURCE_DIR"/backend/public/logos "$TARGET_DIR"/backend/public/ 2>/dev/null || true
+        mkdir -p "$TARGET_DIR/backend/public/uploads/logos" "$TARGET_DIR/backend/public/uploads/general" 2>/dev/null || true
+    fi
 
     # Khôi phục file env.php đã bảo tồn
     if [ -f /tmp/edukpi_env_backup.php ]; then
         mkdir -p "$TARGET_DIR/backend/config"
-        cp /tmp/edukpi_env_backup.php "$TARGET_DIR/backend/config/env.php"
+        cp -f /tmp/edukpi_env_backup.php "$TARGET_DIR/backend/config/env.php"
         rm -f /tmp/edukpi_env_backup.php
         echo -e "${GREEN}   -> Đã khôi phục file cấu hình database an toàn!${NC}"
     fi
@@ -120,8 +148,9 @@ fi
 
 # 7. Phân quyền tập tin an toàn (chmod)
 echo -e "${BLUE}[5/5] Đang thiết lập phân quyền an toàn (chmod 755 cho thư mục, 644 cho file)...${NC}"
-find "$TARGET_DIR" -type d -exec chmod 755 {} + 2>/dev/null || true
-find "$TARGET_DIR" -type f -exec chmod 644 {} + 2>/dev/null || true
+find "$TARGET_DIR" -type d -not -path "*/uploads*" -exec chmod 755 {} + 2>/dev/null || true
+find "$TARGET_DIR" -type f -not -path "*/uploads*" -exec chmod 644 {} + 2>/dev/null || true
+chmod -R 777 "$TARGET_DIR/backend/public/uploads" 2>/dev/null || true
 
 # Cấp quyền thực thi cho các file script deploy
 chmod +x "$SCRIPT_DIR/deploy" 2>/dev/null || true
