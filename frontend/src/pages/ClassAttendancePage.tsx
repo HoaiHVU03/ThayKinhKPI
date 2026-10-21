@@ -1722,13 +1722,19 @@ export const ClassAttendancePage: React.FC = () => {
 
             {/* Signature Area */}
             <div className="grid grid-cols-2 pt-6 text-center text-xs">
-              <div className="space-y-12">
-                <div className="font-bold uppercase text-slate-800">BAN GIÁM THỊ / ĐOÀN THANH NIÊN</div>
-                <div className="font-bold text-slate-900">(Ký và ghi rõ họ tên)</div>
+              <div>
+                <div className="font-bold uppercase text-slate-800 text-[11pt]">BÍ THƯ ĐOÀN TRƯỜNG / TRƯỞNG BAN GIÁM THỊ</div>
+                <div className="h-14 flex items-center justify-center italic text-slate-500 text-[10pt]">(Ký và ghi rõ họ tên)</div>
+                <div className="font-bold text-slate-900 text-[11pt] mt-2">
+                  {schoolSettings.youth_union_secretary || schoolSettings.dorm_manager_name || 'VŨ VĂN HIỀN'}
+                </div>
               </div>
-              <div className="space-y-12">
-                <div className="font-bold uppercase text-slate-800">BAN GIÁM HIỆU PHÊ DUYỆT</div>
-                <div className="font-bold text-slate-900">(Ký, đóng dấu)</div>
+              <div>
+                <div className="font-bold uppercase text-slate-800 text-[11pt]">HIỆU TRƯỞNG</div>
+                <div className="h-14 flex items-center justify-center italic text-slate-500 text-[10pt]">(Ký và đóng dấu)</div>
+                <div className="font-bold text-slate-900 text-[11pt] mt-2">
+                  {schoolSettings.principal_name || 'ĐÀO MẠNH THẮNG'}
+                </div>
               </div>
             </div>
           </div>

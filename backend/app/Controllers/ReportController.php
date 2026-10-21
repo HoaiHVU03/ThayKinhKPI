@@ -173,6 +173,9 @@ class ReportController {
             'dept_name' => $deptName,
             'title' => 'BÁO CÁO TỔNG HỢP ĐÁNH GIÁ NỀN NẾP VÀ KPI RÈN LUYỆN HỌC SINH',
             'semester' => "Học kỳ 1 — Năm học {$acYear}",
+            'principal_name' => $principalName,
+            'dorm_manager_name' => $dormManagerName,
+            'youth_union_secretary' => $youthSecretary,
             'stats' => [
                 'total_students' => $totalStudents,
                 'avg_score' => round($avgScore, 1),
@@ -207,9 +210,9 @@ class ReportController {
         }
 
         $class = $db->query("
-            SELECT c.*, u.full_name AS teacher_name, u.phone AS teacher_phone 
+            SELECT c.*, t.full_name AS teacher_name, t.phone AS teacher_phone 
             FROM classes c 
-            LEFT JOIN users u ON c.homeroom_teacher_id = u.id 
+            LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id 
             WHERE c.id = $cId
         ")->fetch();
 
@@ -253,12 +256,20 @@ class ReportController {
 
         $avgScore = $totalStudents > 0 ? round($totalScores / $totalStudents, 1) : 100.0;
 
+        $settings = $db->query("SELECT setting_key, setting_value FROM school_settings")->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+        $schoolName = mb_strtoupper($settings['school_name'] ?? 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG', 'UTF-8');
+        $province = mb_strtoupper($settings['school_province'] ?? 'PHÚ THỌ', 'UTF-8');
+        $deptName = (stripos($province, 'SỞ') === 0) ? $province : "SỞ GIÁO DỤC VÀ ĐÀO TẠO " . $province;
+        $principalName = $settings['principal_name'] ?? 'ĐÀO MẠNH THẮNG';
+        $acYear = $settings['academic_year_current'] ?? '2026-2027';
+
         Response::success([
             'doc_number' => date('Y') . '/KPI-' . $class['code'],
             'doc_date' => 'Ngày ' . date('d') . ' tháng ' . date('m') . ' năm ' . date('Y'),
-            'school_name' => 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG',
-            'dept_name' => 'SỞ GIÁO DỤC VÀ ĐÀO TẠO PHÚ THỌ',
-            'semester' => 'Học kỳ 1 — Năm học 2026-2027',
+            'school_name' => $schoolName,
+            'dept_name' => $deptName,
+            'semester' => "Học kỳ 1 — Năm học {$acYear}",
+            'principal_name' => $principalName,
             'class' => [
                 'id' => (int)$class['id'],
                 'code' => $class['code'],
@@ -272,6 +283,11 @@ class ReportController {
                 'total_violations' => $totalViolations,
                 'classification_stats' => $counts
             ],
+            'signatories' => [
+                ['title' => 'LỚP TRƯỞNG', 'name' => 'Đại diện Ban cán sự lớp'],
+                ['title' => 'GIÁO VIÊN CHỦ NHIỆM', 'name' => $class['teacher_name'] ?? 'Chưa phân công'],
+                ['title' => 'HIỆU TRƯỞNG', 'name' => $principalName]
+            ],
             'students' => $students
         ]);
     }
@@ -283,12 +299,12 @@ class ReportController {
 
         $student = $db->query("
             SELECT s.*, c.name AS class_name, c.code AS class_code, c.grade_level, 
-                   u.full_name AS teacher_name, u.phone AS teacher_phone,
+                   t.full_name AS teacher_name, t.phone AS teacher_phone,
                    dr.code AS room_code, dr.floor_number,
                    sks.baseline_score, sks.total_deducted, sks.final_score, sks.classification
             FROM students s
             JOIN classes c ON s.class_id = c.id
-            LEFT JOIN users u ON c.homeroom_teacher_id = u.id
+            LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             JOIN student_kpi_summaries sks ON s.id = sks.student_id
             WHERE s.id = $sId
@@ -332,12 +348,26 @@ class ReportController {
             ORDER BY v.violation_date DESC, v.id DESC
         ")->fetchAll();
 
+        $settings = $db->query("SELECT setting_key, setting_value FROM school_settings")->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+        $schoolName = mb_strtoupper($settings['school_name'] ?? 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG', 'UTF-8');
+        $province = mb_strtoupper($settings['school_province'] ?? 'PHÚ THỌ', 'UTF-8');
+        $deptName = (stripos($province, 'SỞ') === 0) ? $province : "SỞ GIÁO DỤC VÀ ĐÀO TẠO " . $province;
+        $principalName = $settings['principal_name'] ?? 'ĐÀO MẠNH THẮNG';
+        $acYear = $settings['academic_year_current'] ?? '2026-2027';
+
         Response::success([
             'doc_number' => date('Y') . '/PKPI-' . $student['code'],
             'doc_date' => 'Ngày ' . date('d') . ' tháng ' . date('m') . ' năm ' . date('Y'),
-            'school_name' => 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG',
-            'dept_name' => 'SỞ GIÁO DỤC VÀ ĐÀO TẠO PHÚ THỌ',
-            'semester' => 'Học kỳ 1 — Năm học 2026-2027',
+            'school_name' => $schoolName,
+            'dept_name' => $deptName,
+            'semester' => "Học kỳ 1 — Năm học {$acYear}",
+            'principal_name' => $principalName,
+            'signatories' => [
+                ['title' => 'HỌC SINH', 'name' => $student['full_name']],
+                ['title' => 'PHỤ HUYNH HỌC SINH', 'name' => !empty($student['parent_name']) ? $student['parent_name'] : 'Đại diện PHHS'],
+                ['title' => 'GV CHỦ NHIỆM', 'name' => !empty($student['teacher_name']) ? $student['teacher_name'] : 'Chưa phân công'],
+                ['title' => 'HIỆU TRƯỞNG', 'name' => $principalName]
+            ],
             'student' => $student,
             'violations' => $violations
         ]);
