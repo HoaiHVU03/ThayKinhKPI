@@ -96,6 +96,37 @@ class StudentController {
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
 
+        $sortBy = $request->get('sort', 'name_asc');
+        $nameSortExpr = "SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1)";
+
+        switch ($sortBy) {
+            case 'name_desc':
+                $orderClause = "$nameSortExpr DESC, s.full_name DESC";
+                break;
+            case 'code_asc':
+                $orderClause = "s.code ASC";
+                break;
+            case 'code_desc':
+                $orderClause = "s.code DESC";
+                break;
+            case 'class_asc':
+                $orderClause = "c.grade_level ASC, c.id ASC, $nameSortExpr ASC, s.full_name ASC";
+                break;
+            case 'class_desc':
+                $orderClause = "c.grade_level DESC, c.id DESC, $nameSortExpr ASC, s.full_name ASC";
+                break;
+            case 'score_desc':
+                $orderClause = "sks.final_score DESC, $nameSortExpr ASC, s.full_name ASC";
+                break;
+            case 'score_asc':
+                $orderClause = "sks.final_score ASC, $nameSortExpr ASC, s.full_name ASC";
+                break;
+            case 'name_asc':
+            default:
+                $orderClause = "$nameSortExpr ASC, s.full_name ASC";
+                break;
+        }
+
         // Query records
         $sql = "SELECT s.id, s.code, s.full_name, s.dob, s.gender, s.class_id, s.is_boarding, s.dorm_room_id,
                        s.parent_name, s.parent_phone, s.student_phone, s.id_card_number, s.hometown, s.status,
@@ -106,7 +137,7 @@ class StudentController {
                 LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
                 LEFT JOIN student_kpi_summaries sks ON s.id = sks.student_id
                 WHERE $whereClause
-                ORDER BY c.grade_level ASC, c.id ASC, s.full_name ASC
+                ORDER BY $orderClause
                 LIMIT $limit OFFSET $offset";
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -390,7 +421,7 @@ class StudentController {
                 LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
                 LEFT JOIN student_kpi_summaries sks ON s.id = sks.student_id
                 WHERE " . implode(' AND ', $where) . "
-                ORDER BY c.grade_level ASC, c.id ASC, s.full_name ASC";
+                ORDER BY c.grade_level ASC, c.id ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC";
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         $data = $stmt->fetchAll();

@@ -131,7 +131,7 @@ class ReportController {
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             JOIN student_kpi_summaries sks ON s.id = sks.student_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY sks.final_score ASC, s.full_name ASC
+            ORDER BY sks.final_score ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
             LIMIT 200
         ";
         $stmt = $db->prepare($sql);
@@ -232,7 +232,7 @@ class ReportController {
             JOIN student_kpi_summaries sks ON s.id = sks.student_id
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             WHERE s.class_id = $cId
-            ORDER BY sks.final_score DESC, s.full_name ASC
+            ORDER BY sks.final_score DESC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ")->fetchAll();
 
         // Calculate class stats

@@ -94,6 +94,7 @@ export const StudentsPage: React.FC = () => {
   const [classId, setClassId] = useState('');
   const [isBoarding, setIsBoarding] = useState('');
   const [gender, setGender] = useState('');
+  const [sort, setSort] = useState('name_asc');
 
   // Modals
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -143,6 +144,7 @@ export const StudentsPage: React.FC = () => {
         class_id: classId,
         is_boarding: isBoarding,
         gender,
+        sort,
       });
       setStudents(res.items || []);
       setTotalPages(res.total_pages || 1);
@@ -169,7 +171,7 @@ export const StudentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, [page, grade, classId, isBoarding, gender]);
+  }, [page, grade, classId, isBoarding, gender, sort]);
 
   // Real-time search debounce as user types student name or code
   useEffect(() => {
@@ -380,9 +382,26 @@ export const StudentsPage: React.FC = () => {
             <option value="Nữ">Nữ</option>
           </select>
 
-          {(search || grade || classId || isBoarding || gender) && (
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <span className="font-semibold text-slate-500 whitespace-nowrap">Sắp xếp:</span>
+            <select
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+              className="px-2.5 py-1.5 border border-blue-300 rounded-lg text-xs bg-blue-50/60 text-[#0e3a7c] font-bold w-full sm:w-auto focus:ring-2 focus:ring-[#0e3a7c]"
+            >
+              <option value="name_asc">🔤 Tên A-Z (Chuẩn AlphaB)</option>
+              <option value="name_desc">🔤 Tên Z-A</option>
+              <option value="class_asc">🏫 Theo Khối / Lớp</option>
+              <option value="score_desc">⭐ Điểm KPI cao nhất</option>
+              <option value="score_asc">⚠️ Điểm KPI thấp nhất</option>
+              <option value="code_asc">🆔 Mã HS tăng dần</option>
+              <option value="code_desc">🆔 Mã HS giảm dần</option>
+            </select>
+          </div>
+
+          {(search || grade || classId || isBoarding || gender || sort !== 'name_asc') && (
             <button
-              onClick={() => { setSearch(''); setGrade(''); setClassId(''); setIsBoarding(''); setGender(''); setPage(1); }}
+              onClick={() => { setSearch(''); setGrade(''); setClassId(''); setIsBoarding(''); setGender(''); setSort('name_asc'); setPage(1); }}
               className="text-xs text-red-600 hover:underline font-semibold ml-auto"
             >
               Xóa bộ lọc
@@ -397,13 +416,76 @@ export const StudentsPage: React.FC = () => {
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="px-4 py-3">Mã HS</th>
-                <th className="px-4 py-3">Họ và tên</th>
+                <th
+                  onClick={() => {
+                    setSort(prev => prev === 'code_asc' ? 'code_desc' : 'code_asc');
+                    setPage(1);
+                  }}
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 select-none transition-colors"
+                  title="Nhấn để sắp xếp theo Mã học sinh"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Mã HS</span>
+                    {sort === 'code_asc' && <span className="text-[#0e3a7c] font-black">↑</span>}
+                    {sort === 'code_desc' && <span className="text-[#0e3a7c] font-black">↓</span>}
+                  </div>
+                </th>
+                <th
+                  onClick={() => {
+                    setSort(prev => prev === 'name_asc' ? 'name_desc' : 'name_asc');
+                    setPage(1);
+                  }}
+                  className="px-4 py-3 cursor-pointer hover:bg-blue-100/60 select-none transition-colors bg-blue-50/40"
+                  title="Nhấn để đảo chiều sắp xếp theo Tên AlphaB (A-Z / Z-A)"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-blue-900 font-bold">Họ và tên</span>
+                    {sort === 'name_asc' && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-[#0e3a7c] text-white font-bold shadow-2xs">
+                        A-Z ↑
+                      </span>
+                    )}
+                    {sort === 'name_desc' && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-[#0e3a7c] text-white font-bold shadow-2xs">
+                        Z-A ↓
+                      </span>
+                    )}
+                    {sort !== 'name_asc' && sort !== 'name_desc' && (
+                      <span className="text-slate-400 text-[10px]">A-Z</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-3 py-3">Giới tính</th>
-                <th className="px-3 py-3">Lớp</th>
+                <th
+                  onClick={() => {
+                    setSort(prev => prev === 'class_asc' ? 'class_desc' : 'class_asc');
+                    setPage(1);
+                  }}
+                  className="px-3 py-3 cursor-pointer hover:bg-slate-100 select-none transition-colors"
+                  title="Nhấn để sắp xếp theo Lớp"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Lớp</span>
+                    {sort === 'class_asc' && <span className="text-[#0e3a7c] font-black">↑</span>}
+                    {sort === 'class_desc' && <span className="text-[#0e3a7c] font-black">↓</span>}
+                  </div>
+                </th>
                 <th className="px-3 py-3">Hình thức</th>
                 <th className="px-3 py-3">Phòng KTX</th>
-                <th className="px-3 py-3">Điểm KPI</th>
+                <th
+                  onClick={() => {
+                    setSort(prev => prev === 'score_desc' ? 'score_asc' : 'score_desc');
+                    setPage(1);
+                  }}
+                  className="px-3 py-3 cursor-pointer hover:bg-slate-100 select-none transition-colors"
+                  title="Nhấn để sắp xếp theo Điểm KPI"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Điểm KPI</span>
+                    {sort === 'score_desc' && <span className="text-[#0e3a7c] font-black">↓</span>}
+                    {sort === 'score_asc' && <span className="text-[#0e3a7c] font-black">↑</span>}
+                  </div>
+                </th>
                 <th className="px-3 py-3">Xếp loại</th>
                 <th className="px-4 py-3 text-right">Thao tác</th>
               </tr>

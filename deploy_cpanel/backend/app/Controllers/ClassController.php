@@ -19,7 +19,7 @@ class ClassController {
         $params = [];
 
         // Role-based scoping
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope) {
                 $where[] = "c.id = ?";
@@ -67,10 +67,10 @@ class ClassController {
 
     public function show(Request $request, string $id): void {
         $user = AuthMiddleware::$currentUser;
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && (int)$id !== $classScope) {
-                Response::forbidden('Bạn chỉ có quyền xem thông tin của lớp mình phụ trách');
+                Response::forbidden('Bạn chỉ có quyền xem thông tin của lớp mình');
                 return;
             }
         } elseif ($user && in_array($user['role'], ['room_leader', 'floor_leader'])) {
@@ -102,10 +102,10 @@ class ClassController {
 
     public function students(Request $request, string $id): void {
         $user = AuthMiddleware::$currentUser;
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && (int)$id !== $classScope) {
-                Response::forbidden('Bạn chỉ có quyền xem học sinh của lớp mình phụ trách');
+                Response::forbidden('Bạn chỉ có quyền xem học sinh của lớp mình');
                 return;
             }
         } elseif ($user && in_array($user['role'], ['room_leader', 'floor_leader'])) {
@@ -129,7 +129,7 @@ class ClassController {
                 GROUP BY student_id
             ) vc ON s.id = vc.student_id
             WHERE s.class_id = ?
-            ORDER BY s.full_name ASC
+            ORDER BY SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ");
         $stmt->execute([(int)$id]);
         $students = $stmt->fetchAll();
@@ -167,21 +167,119 @@ class ClassController {
         Response::success(['id' => $db->lastInsertId()], 'Tạo lớp chuyên mới thành công', 201);
     }
 
+    public function teachersList(Request $request): void {
+        $db = Database::getConnection();
+        $teachers = $db->query("
+            SELECT t.id, t.code, t.full_name, t.phone, t.email, t.subject, t.is_duty_teacher,
+                   c.id AS current_class_id, c.name AS current_class_name
+            FROM teachers t
+            LEFT JOIN classes c ON c.homeroom_teacher_id = t.id
+            ORDER BY t.full_name ASC
+        ")->fetchAll();
+        Response::success($teachers);
+    }
+
+    public function changeTeacher(Request $request, string $id): void {
+        if (!AuthMiddleware::requireAdmin('Chỉ Quản trị viên mới có quyền thay đổi Giáo viên chủ nhiệm')) {
+            return;
+        }
+
+        $db = Database::getConnection();
+        $classId = (int)$id;
+
+        $chkClass = $db->prepare("SELECT id, name, code, homeroom_teacher_id FROM classes WHERE id = ?");
+        $chkClass->execute([$classId]);
+        $class = $chkClass->fetch();
+        if (!$class) {
+            Response::notFound('Không tìm thấy lớp học');
+            return;
+        }
+
+        $teacherId = $request->input('teacher_id') ? (int)$request->input('teacher_id') : null;
+        $teacherName = trim($request->input('teacher_name', ''));
+        $teacherPhone = trim($request->input('phone', ''));
+        $teacherSubject = trim($request->input('subject', ''));
+
+        if (!$teacherId && $teacherName) {
+            $stmtT = $db->prepare("SELECT id FROM teachers WHERE full_name = ? LIMIT 1");
+            $stmtT->execute([$teacherName]);
+            $existT = $stmtT->fetch();
+            if ($existT) {
+                $teacherId = (int)$existT['id'];
+            } else {
+                $tCode = 'GV' . str_pad((int)$db->query("SELECT COUNT(*) FROM teachers")->fetchColumn() + 1, 3, '0', STR_PAD_LEFT);
+                $insT = $db->prepare("INSERT INTO teachers (code, full_name, phone, subject, is_duty_teacher) VALUES (?, ?, ?, ?, 1)");
+                $insT->execute([$tCode, $teacherName, $teacherPhone, $teacherSubject ?: 'Bộ môn']);
+                $teacherId = (int)$db->lastInsertId();
+            }
+        }
+
+        $db->prepare("UPDATE classes SET homeroom_teacher_id = ? WHERE id = ?")->execute([$teacherId, $classId]);
+
+        // Cập nhật Scope gán quyền
+        $db->prepare("DELETE FROM user_scope_assignments WHERE scope_type = 'class' AND scope_id = ?")->execute([$classId]);
+
+        if ($teacherId) {
+            $uId = $db->query("SELECT user_id FROM teachers WHERE id = $teacherId")->fetchColumn();
+            if ($uId) {
+                $db->prepare("INSERT INTO user_scope_assignments (user_id, scope_type, scope_id) VALUES (?, 'class', ?)")->execute([$uId, $classId]);
+            }
+        }
+
+        $newTeacher = null;
+        if ($teacherId) {
+            $stmtNewT = $db->prepare("SELECT id, code, full_name, phone, email, subject FROM teachers WHERE id = ?");
+            $stmtNewT->execute([$teacherId]);
+            $newTeacher = $stmtNewT->fetch();
+        }
+
+        Response::success([
+            'class_id' => $classId,
+            'class_name' => $class['name'],
+            'teacher' => $newTeacher
+        ], 'Cập nhật Giáo viên chủ nhiệm thành công');
+    }
+
     public function update(Request $request, string $id): void {
         if (!AuthMiddleware::requireAdmin()) {
             return;
         }
 
         $db = Database::getConnection();
+        $classId = (int)$id;
         $name = trim($request->input('name', ''));
         $gradeLevel = (int)$request->input('grade_level', 10);
         $teacherId = $request->input('homeroom_teacher_id') ? (int)$request->input('homeroom_teacher_id') : null;
+        $teacherName = trim($request->input('teacher_name', ''));
         $roomLocation = trim($request->input('room_location', ''));
 
-        $stmt = $db->prepare("UPDATE classes SET name = ?, grade_level = ?, homeroom_teacher_id = ?, room_location = ? WHERE id = ?");
-        $stmt->execute([$name, $gradeLevel, $teacherId, $roomLocation, (int)$id]);
+        if (!$teacherId && $teacherName) {
+            $stmtT = $db->prepare("SELECT id FROM teachers WHERE full_name = ? LIMIT 1");
+            $stmtT->execute([$teacherName]);
+            $existT = $stmtT->fetch();
+            if ($existT) {
+                $teacherId = (int)$existT['id'];
+            } else {
+                $tCode = 'GV' . str_pad((int)$db->query("SELECT COUNT(*) FROM teachers")->fetchColumn() + 1, 3, '0', STR_PAD_LEFT);
+                $insT = $db->prepare("INSERT INTO teachers (code, full_name, subject, is_duty_teacher) VALUES (?, ?, 'Bộ môn', 1)");
+                $insT->execute([$tCode, $teacherName]);
+                $teacherId = (int)$db->lastInsertId();
+            }
+        }
 
-        Response::success(null, 'Cập nhật thông tin lớp thành công');
+        $stmt = $db->prepare("UPDATE classes SET name = ?, grade_level = ?, homeroom_teacher_id = ?, room_location = ? WHERE id = ?");
+        $stmt->execute([$name, $gradeLevel, $teacherId, $roomLocation, $classId]);
+
+        // Cập nhật Scope
+        $db->prepare("DELETE FROM user_scope_assignments WHERE scope_type = 'class' AND scope_id = ?")->execute([$classId]);
+        if ($teacherId) {
+            $uId = $db->query("SELECT user_id FROM teachers WHERE id = $teacherId")->fetchColumn();
+            if ($uId) {
+                $db->prepare("INSERT INTO user_scope_assignments (user_id, scope_type, scope_id) VALUES (?, 'class', ?)")->execute([$uId, $classId]);
+            }
+        }
+
+        Response::success(null, 'Cập nhật thông tin lớp và Giáo viên chủ nhiệm thành công');
     }
 
     public function destroy(Request $request, string $id): void {

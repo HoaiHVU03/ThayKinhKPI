@@ -570,7 +570,7 @@ class ClassAttendanceController {
                 WHERE cas_inner.class_id = ? AND cas_inner.session_date = ?
             ) car ON s.id = car.student_id
             WHERE s.class_id = ?
-            ORDER BY s.full_name ASC
+            ORDER BY SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ");
         $stStmt->execute([$classIdInt, $date, $classIdInt]);
         $students = $stStmt->fetchAll();
@@ -853,7 +853,7 @@ class ClassAttendanceController {
             LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             WHERE $whereClause
-            ORDER BY c.grade_level ASC, c.id ASC, car.status ASC, s.full_name ASC
+            ORDER BY c.grade_level ASC, c.id ASC, car.status ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ";
 
         $stmt = $db->prepare($sql);

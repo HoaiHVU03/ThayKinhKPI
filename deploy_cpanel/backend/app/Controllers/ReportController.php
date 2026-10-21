@@ -131,7 +131,7 @@ class ReportController {
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             JOIN student_kpi_summaries sks ON s.id = sks.student_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY sks.final_score ASC, s.full_name ASC
+            ORDER BY sks.final_score ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
             LIMIT 200
         ";
         $stmt = $db->prepare($sql);
@@ -160,8 +160,8 @@ class ReportController {
         $schoolName = mb_strtoupper($settings['school_name'] ?? 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG', 'UTF-8');
         $province = mb_strtoupper($settings['school_province'] ?? 'PHÚ THỌ', 'UTF-8');
         $deptName = (stripos($province, 'SỞ') === 0) ? $province : "SỞ GIÁO DỤC VÀ ĐÀO TẠO " . $province;
-        $principalName = $settings['principal_name'] ?? 'TS. Phạm Tuấn Anh';
-        $dormManagerName = $settings['dorm_manager_name'] ?? 'Thầy Đỗ Văn Thắng';
+        $principalName = $settings['principal_name'] ?? 'ĐÀO MẠNH THẮNG';
+        $dormManagerName = $settings['dorm_manager_name'] ?? 'VŨ VĂN HIỀN';
         $youthSecretary = $settings['youth_union_secretary'] ?? 'Cô Trần Thị Mai';
         $acYear = $settings['academic_year_current'] ?? '2026-2027';
         $schoolCode = $settings['school_code'] ?? 'THPTCHV';
@@ -232,7 +232,7 @@ class ReportController {
             JOIN student_kpi_summaries sks ON s.id = sks.student_id
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             WHERE s.class_id = $cId
-            ORDER BY sks.final_score DESC, s.full_name ASC
+            ORDER BY sks.final_score DESC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ")->fetchAll();
 
         // Calculate class stats

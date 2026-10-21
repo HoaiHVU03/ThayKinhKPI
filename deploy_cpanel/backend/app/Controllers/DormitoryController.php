@@ -175,7 +175,7 @@ class DormitoryController {
                 WHERE sess.session_date = CURDATE() AND sess.session_type = 'evening'
             ) att ON s.id = att.student_id
             WHERE s.dorm_room_id = ?
-            ORDER BY s.full_name ASC
+            ORDER BY SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ");
         $stStmt->execute([(int)$id]);
         $room['students'] = $stStmt->fetchAll();
@@ -575,6 +575,10 @@ class DormitoryController {
     }
 
     public function storeRoom(Request $request): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền tạo phòng KTX')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $code = trim($request->input('code', ''));
         $floorNumber = (int)$request->input('floor_number', 1);
@@ -600,6 +604,10 @@ class DormitoryController {
     }
 
     public function updateRoom(Request $request, string $id): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền cập nhật phòng KTX')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $floorNumber = (int)$request->input('floor_number');
         $gender = $request->input('gender');
@@ -625,6 +633,10 @@ class DormitoryController {
     }
 
     public function destroyRoom(Request $request, string $id): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền xóa phòng KTX')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $room = $db->query("SELECT * FROM dormitory_rooms WHERE id = " . (int)$id)->fetch();
         if (!$room) {
@@ -647,6 +659,10 @@ class DormitoryController {
     }
 
     public function removeStudent(Request $request, string $id): void {
+        if (!AuthMiddleware::requireRole(['admin', 'dorm_manager'], 'Chỉ Quản trị viên hoặc Quản sinh mới có quyền làm thủ tục rời phòng')) {
+            return;
+        }
+
         $db = Database::getConnection();
         $studentId = (int)$request->input('student_id');
 
@@ -767,7 +783,7 @@ class DormitoryController {
                 JOIN classes c ON s.class_id = c.id
                 JOIN dormitory_rooms r ON ar.room_id = r.id
                 WHERE ar.session_id = $sessionId AND ar.status != 'present'
-                ORDER BY r.floor_number ASC, r.code ASC, s.full_name ASC
+                ORDER BY r.floor_number ASC, r.code ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
             ");
             $absentStudents = $absentStmt->fetchAll();
         }
@@ -987,7 +1003,7 @@ class DormitoryController {
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             LEFT JOIN student_kpi_summaries sks ON s.id = sks.student_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY s.is_boarding DESC, dr.code ASC, s.full_name ASC
+            ORDER BY s.is_boarding DESC, dr.code ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
             LIMIT $limit OFFSET $offset
         ";
         $stmt = $db->prepare($sql);

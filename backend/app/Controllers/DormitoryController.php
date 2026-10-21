@@ -175,7 +175,7 @@ class DormitoryController {
                 WHERE sess.session_date = CURDATE() AND sess.session_type = 'evening'
             ) att ON s.id = att.student_id
             WHERE s.dorm_room_id = ?
-            ORDER BY s.full_name ASC
+            ORDER BY SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ");
         $stStmt->execute([(int)$id]);
         $room['students'] = $stStmt->fetchAll();
@@ -783,7 +783,7 @@ class DormitoryController {
                 JOIN classes c ON s.class_id = c.id
                 JOIN dormitory_rooms r ON ar.room_id = r.id
                 WHERE ar.session_id = $sessionId AND ar.status != 'present'
-                ORDER BY r.floor_number ASC, r.code ASC, s.full_name ASC
+                ORDER BY r.floor_number ASC, r.code ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
             ");
             $absentStudents = $absentStmt->fetchAll();
         }
@@ -1003,7 +1003,7 @@ class DormitoryController {
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             LEFT JOIN student_kpi_summaries sks ON s.id = sks.student_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY s.is_boarding DESC, dr.code ASC, s.full_name ASC
+            ORDER BY s.is_boarding DESC, dr.code ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
             LIMIT $limit OFFSET $offset
         ";
         $stmt = $db->prepare($sql);

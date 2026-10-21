@@ -25,7 +25,7 @@ class ClassAttendanceController {
         $params = [];
 
         // Role scoping
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope) {
                 $where[] = "c.id = ?";
@@ -517,10 +517,10 @@ class ClassAttendanceController {
         $classIdInt = (int)$classId;
 
         // Scoping
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre', 'student'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && $classScope !== $classIdInt) {
-                Response::forbidden('Bạn chỉ có quyền điểm danh lớp chủ nhiệm của mình');
+                Response::forbidden('Bạn chỉ có quyền xem lớp của mình');
                 return;
             }
         }
@@ -570,7 +570,7 @@ class ClassAttendanceController {
                 WHERE cas_inner.class_id = ? AND cas_inner.session_date = ?
             ) car ON s.id = car.student_id
             WHERE s.class_id = ?
-            ORDER BY s.full_name ASC
+            ORDER BY SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ");
         $stStmt->execute([$classIdInt, $date, $classIdInt]);
         $students = $stStmt->fetchAll();
@@ -604,14 +604,17 @@ class ClassAttendanceController {
         $classIdInt = (int)$classId;
 
         // Scoping check
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && $user['role'] === 'student') {
+            Response::forbidden('Học sinh chỉ có quyền xem, không được phép điểm danh');
+            return;
+        } elseif ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && $classScope !== $classIdInt) {
-                Response::forbidden('Bạn chỉ có quyền điểm danh cho lớp mình chủ nhiệm');
+                Response::forbidden('Bạn chỉ có quyền điểm danh cho lớp của mình');
                 return;
             }
-        } elseif ($user && in_array($user['role'], ['room_leader', 'floor_leader'])) {
-            Response::forbidden('Trưởng phòng/Trưởng tầng chỉ quản lý điểm danh KTX, không có quyền điểm danh lớp học');
+        } elseif ($user && in_array($user['role'], ['dorm_manager', 'room_leader', 'floor_leader'])) {
+            Response::forbidden('Quản sinh/Ban quản lý KTX không có quyền điểm danh lớp học');
             return;
         }
 
@@ -727,13 +730,16 @@ class ClassAttendanceController {
         $user = AuthMiddleware::$currentUser;
         $classIdInt = (int)$classId;
 
-        if ($user && $user['role'] === 'homeroom_teacher') {
+        if ($user && $user['role'] === 'student') {
+            Response::forbidden('Học sinh chỉ có quyền xem, không được phép điểm danh');
+            return;
+        } elseif ($user && in_array($user['role'], ['homeroom_teacher', 'class_cadre'])) {
             $classScope = AuthMiddleware::getUserScope('class');
             if ($classScope && $classScope !== $classIdInt) {
-                Response::forbidden('Bạn chỉ có quyền điểm danh lớp chủ nhiệm của mình');
+                Response::forbidden('Bạn chỉ có quyền điểm danh lớp của mình');
                 return;
             }
-        } elseif ($user && in_array($user['role'], ['room_leader', 'floor_leader'])) {
+        } elseif ($user && in_array($user['role'], ['dorm_manager', 'room_leader', 'floor_leader'])) {
             Response::forbidden('Tài khoản quản lý KTX không có quyền điểm danh lớp học');
             return;
         }
@@ -847,7 +853,7 @@ class ClassAttendanceController {
             LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
             WHERE $whereClause
-            ORDER BY c.grade_level ASC, c.id ASC, car.status ASC, s.full_name ASC
+            ORDER BY c.grade_level ASC, c.id ASC, car.status ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ";
 
         $stmt = $db->prepare($sql);

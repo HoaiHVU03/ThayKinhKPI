@@ -472,7 +472,7 @@ class DashboardController {
                 JOIN classes c ON s.class_id = c.id
                 JOIN dormitory_rooms r ON ar.room_id = r.id
                 WHERE $absentWhereSql
-                ORDER BY r.floor_number, r.code, s.full_name
+                ORDER BY r.floor_number, r.code, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1), s.full_name
                 LIMIT 50
             ")->fetchAll();
         }

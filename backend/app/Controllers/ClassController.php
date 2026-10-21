@@ -129,7 +129,7 @@ class ClassController {
                 GROUP BY student_id
             ) vc ON s.id = vc.student_id
             WHERE s.class_id = ?
-            ORDER BY s.full_name ASC
+            ORDER BY SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ");
         $stmt->execute([(int)$id]);
         $students = $stmt->fetchAll();
