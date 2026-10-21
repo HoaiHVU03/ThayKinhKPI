@@ -131,7 +131,7 @@ export const DashboardPage: React.FC = () => {
         <div>
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-              Bảng điều khiển tổng quan nề nếp & ký túc xá
+              Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ
             </h1>
             <span className="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
               Năm học 2026 - 2027

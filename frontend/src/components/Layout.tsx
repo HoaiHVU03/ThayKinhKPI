@@ -189,11 +189,7 @@ export const Layout: React.FC = () => {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
-            <div
-              className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0"
-              onClick={() => navigate('/dashboard')}
-              title="Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ"
-            >
+            <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={() => navigate('/dashboard')}>
               <SchoolLogo
                 schoolCode={currentSchoolCode}
                 schoolName={schoolSettings.school_name}
@@ -202,13 +198,11 @@ export const Layout: React.FC = () => {
                 className="shrink-0 drop-shadow-xs"
               />
               <div className="text-left leading-tight min-w-0">
-                <h1 className="text-xs sm:text-sm font-extrabold tracking-tight text-[#0e3a7c] uppercase truncate max-w-[200px] sm:max-w-[280px] md:max-w-[360px] lg:max-w-[440px] xl:max-w-none">
-                  <span className="hidden xl:inline">Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ</span>
-                  <span className="xl:hidden">Hệ thống đánh giá KPI nền nếp học sinh</span>
+                <h1 className="text-xs sm:text-sm font-extrabold tracking-tight text-[#0e3a7c] uppercase truncate max-w-[150px] sm:max-w-[200px] md:max-w-[260px] xl:max-w-none">
+                  {schoolSettings.school_name || 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG - PHÚ THỌ'}
                 </h1>
-                <p className="text-[10px] sm:text-xs font-semibold text-slate-600 truncate hidden md:block">
-                  <span className="xl:hidden">Trường THPT Chuyên Hùng Vương Phú Thọ</span>
-                  <span className="hidden xl:inline">Nền tảng Quản trị Nền nếp & Ký túc xá Thông minh</span>
+                <p className="text-[10px] sm:text-xs font-medium text-slate-500 truncate hidden md:block">
+                  Quản lý KTX & KPI rèn luyện nề nếp
                 </p>
               </div>
             </div>
