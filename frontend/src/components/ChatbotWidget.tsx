@@ -1,14 +1,13 @@
 // frontend/src/components/ChatbotWidget.tsx
-// Interactive Floating AI Chatbot Widget powered by Google Gemini (Flash 3.8 / 3.7 / 3.6)
-// Provides 24/7 consultation on all contents of THPT Chuyen Hung Vuong Management & KPI System
+// Hỗ trợ tra cứu thông tin hệ thống THPT Chuyên Hùng Vương
+// Thiết kế Basic, Sang Trọng, Chuẩn mực Sư phạm
 
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import {
-  Bot,
+  MessageSquare,
   X,
   Send,
-  Sparkles,
   RotateCcw,
   Copy,
   Check,
@@ -19,7 +18,7 @@ import {
   FileText,
   ShieldCheck,
   HelpCircle,
-  ExternalLink,
+  Search,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -34,7 +33,7 @@ interface ChatMessage {
 const SUGGESTIONS = [
   {
     icon: Building2,
-    label: 'Sơ đồ 120 phòng KTX & nội/ngoại trú',
+    label: 'Sơ đồ 120 phòng KTX & sĩ số',
     prompt: 'KTX có bao nhiêu phòng và học sinh? Phân loại nội trú và ngoại trú thế nào?',
   },
   {
@@ -44,17 +43,17 @@ const SUGGESTIONS = [
   },
   {
     icon: Clock,
-    label: '11 khung giờ chế độ sinh hoạt KTX',
+    label: '11 chế độ sinh hoạt trong ngày',
     prompt: 'Khung giờ 11 chế độ sinh hoạt trong ngày của học sinh nội trú là gì?',
   },
   {
     icon: FileText,
-    label: 'Quy trình làm đơn xin phép vắng KTX',
+    label: 'Quy trình làm đơn xin phép KTX',
     prompt: 'Hướng dẫn quy trình làm đơn xin phép vắng KTX và cơ chế cảnh báo quá hạn?',
   },
   {
     icon: ShieldCheck,
-    label: 'Quy trình điểm danh & báo cáo Zalo 22:15',
+    label: 'Điểm danh 22:00 & báo cáo Zalo 22:15',
     prompt: 'Quy trình điểm danh 22:00 và xuất mẫu báo cáo Zalo gửi BGH như thế nào?',
   },
 ];
@@ -68,16 +67,14 @@ export const ChatbotWidget: React.FC = () => {
         id: 'welcome-1',
         role: 'assistant',
         content:
-          'Xin chào! Tôi là **Trợ lý AI EduKPI Chuyên Hùng Vương** - Cố vấn thông minh được tích hợp Google Gemini Flash AI (3.8 / 3.7 / 3.6).\n\n' +
-          'Tôi chuyên hỗ trợ **tra cứu toàn diện thông tin trên hệ thống web nhà trường**:\n' +
-          '• **Sơ đồ 120 phòng KTX** & danh sách 1.883 học sinh (Nội trú / Ngoại trú).\n' +
-          '• **10 tiêu chí KPI & kỷ luật** (L01 - L10) cùng thang điểm rèn luyện.\n' +
-          '• **11 chế độ sinh hoạt hàng ngày** từ báo thức 05:30 đến tắt đèn 22:30.\n' +
-          '• **Điểm danh 22:00, xuất báo cáo Zalo 22:15** & đơn xin phép vắng mặt.\n' +
-          '• **Mẫu in văn bản A4 chuẩn Nghị định 30/2020**.\n\n' +
-          '🔒 *Phạm vi hỗ trợ:* Trợ lý chuyên trách tra cứu dữ liệu web và quy chế trường học. Các câu hỏi ngoài phạm vi hệ thống sẽ được từ chối theo quy định.\n\n' +
-          'Bạn cần tra cứu hoặc tìm hiểu thông tin nào?',
-        modelUsed: 'Gemini Flash 3.8',
+          'Kính chào Thầy/Cô và các bạn học sinh!\n\n' +
+          'Hệ thống hỗ trợ tra cứu nhanh các thông tin trên cổng điều hành Trường THPT Chuyên Hùng Vương:\n' +
+          '• **Ký túc xá:** Sơ đồ 120 phòng, quân số nội trú / ngoại trú, tình trạng phòng ở.\n' +
+          '• **Nề nếp & KPI:** 10 lỗi vi phạm chuẩn hóa (L01 - L10) và khung điểm rèn luyện.\n' +
+          '• **Khung giờ sinh hoạt:** 11 chế độ sinh hoạt từ báo thức 05:30 đến tắt đèn 22:30.\n' +
+          '• **Hồ sơ & Điểm danh:** Tra cứu học sinh, điểm danh ca 22:00, đơn xin nghỉ phép KTX.\n\n' +
+          'Thầy/Cô và các em có thể nhập nội dung cần tra cứu bên dưới.',
+        modelUsed: 'Trợ lý EduKPI',
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       },
     ];
@@ -118,7 +115,6 @@ export const ChatbotWidget: React.FC = () => {
     setInputText('');
     setIsLoading(true);
 
-    // Format conversation history for Gemini API
     const historyPayload = newMessages
       .filter((m) => m.id !== userMsg.id && m.id !== 'welcome-1')
       .slice(-6)
@@ -133,8 +129,8 @@ export const ChatbotWidget: React.FC = () => {
         history: historyPayload,
       });
 
-      const replyContent = res?.reply || res?.data?.reply || 'Tôi đã nhận được câu hỏi nhưng không thể phản hồi lúc này.';
-      const modelUsed = res?.model_used || res?.data?.model_used || 'Gemini Flash';
+      const replyContent = res?.reply || res?.data?.reply || 'Hệ thống đã ghi nhận nhưng không thể phản hồi lúc này.';
+      const modelUsed = res?.model_used || res?.data?.model_used || 'Trợ lý EduKPI';
       const keyIndex = res?.key_index ?? res?.data?.key_index ?? null;
 
       const botMsg: ChatMessage = {
@@ -155,9 +151,9 @@ export const ChatbotWidget: React.FC = () => {
         id: 'bot-err-' + Date.now(),
         role: 'assistant',
         content:
-          '⚠️ **Đã xảy ra sự cố kết nối:** ' +
-          (err.message || 'Không thể gửi câu hỏi đến dịch vụ AI. Vui lòng kiểm tra lại kết nối mạng hoặc liên hệ Quản trị viên.'),
-        modelUsed: 'Lỗi',
+          '⚠️ **Thông báo:** ' +
+          (err.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau giây lát.'),
+        modelUsed: 'Lỗi kết nối',
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -180,13 +176,13 @@ export const ChatbotWidget: React.FC = () => {
   };
 
   const handleClearHistory = () => {
-    if (window.confirm('Xóa toàn bộ lịch sử trò chuyện hiện tại?')) {
+    if (window.confirm('Làm mới lại cuộc trò chuyện hiện tại?')) {
       setMessages([
         {
           id: 'welcome-reset',
           role: 'assistant',
-          content: 'Cuộc trò chuyện đã được làm mới. Tôi sẵn sàng giải đáp mọi thắc mắc về Hệ thống THPT Chuyên Hùng Vương!',
-          modelUsed: 'Gemini Flash 3.8',
+          content: 'Cuộc trò chuyện đã được làm mới. Vui lòng nhập nội dung Thầy/Cô và các em cần tra cứu.',
+          modelUsed: 'Trợ lý EduKPI',
           timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -195,10 +191,8 @@ export const ChatbotWidget: React.FC = () => {
 
   // Render markdown-like simple text formatting
   const formatText = (content: string) => {
-    // Split lines
     const lines = content.split('\n');
     return lines.map((line, idx) => {
-      // Bold rendering
       let processed = line;
       const boldParts = processed.split(/(\*\*.*?\*\*)/g);
 
@@ -217,14 +211,14 @@ export const ChatbotWidget: React.FC = () => {
       );
 
       if (line.startsWith('### ')) {
-        return <h4 key={idx} className="font-black text-slate-900 text-xs mt-2 mb-1">{line.replace('### ', '')}</h4>;
+        return <h4 key={idx} className="font-bold text-slate-900 text-xs mt-2 mb-1">{line.replace('### ', '')}</h4>;
       }
       if (line.startsWith('## ')) {
-        return <h3 key={idx} className="font-black text-slate-900 text-sm mt-2 mb-1">{line.replace('## ', '')}</h3>;
+        return <h3 key={idx} className="font-bold text-slate-900 text-sm mt-2 mb-1">{line.replace('## ', '')}</h3>;
       }
       if (line.startsWith('> ')) {
         return (
-          <div key={idx} className="border-l-2 border-amber-500 pl-2 my-1 text-[11px] text-amber-900 bg-amber-50/60 py-1 rounded-r">
+          <div key={idx} className="border-l-2 border-slate-400 pl-2.5 my-1 text-[11px] text-slate-600 bg-slate-50 py-1 rounded-r">
             {line.replace('> ', '')}
           </div>
         );
@@ -240,7 +234,7 @@ export const ChatbotWidget: React.FC = () => {
       if (/^\d+\.\s/.test(line)) {
         return (
           <div key={idx} className="my-0.5 ml-1 flex items-start gap-1">
-            <span className="font-bold text-[#0e3a7c]">{line.match(/^\d+\./)?.[0]}</span>
+            <span className="font-semibold text-[#0e3a7c]">{line.match(/^\d+\./)?.[0]}</span>
             <div className="flex-1">{renderFormattedLine()}</div>
           </div>
         );
@@ -257,49 +251,47 @@ export const ChatbotWidget: React.FC = () => {
       {/* Chat Window */}
       {isOpen && (
         <div
-          className={`w-[92vw] sm:w-[420px] md:w-[450px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden transition-all duration-300 ease-out mb-3.5 backdrop-blur-md ${
-            isMinimized ? 'h-[58px]' : 'h-[620px] max-h-[85vh]'
+          className={`w-[92vw] sm:w-[420px] md:w-[440px] bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-200 ease-out mb-3 backdrop-blur-md ${
+            isMinimized ? 'h-[52px]' : 'h-[580px] max-h-[82vh]'
           }`}
           style={{
-            boxShadow: '0 20px 40px -15px rgba(14, 58, 124, 0.25), 0 0 0 1px rgba(14, 58, 124, 0.08)',
+            boxShadow: '0 12px 32px -8px rgba(14, 58, 124, 0.18), 0 0 0 1px rgba(14, 58, 124, 0.06)',
           }}
         >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-[#0e3a7c] via-[#12499c] to-[#0a2c61] text-white p-3.5 flex items-center justify-between select-none shadow-xs">
+          {/* Header (Basic & Sang Trọng) */}
+          <div className="bg-[#0e3a7c] text-white px-4 py-3 flex items-center justify-between select-none border-b border-[#092754]">
             <div className="flex items-center gap-2.5">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-amber-300 shadow-inner">
-                  <Bot className="w-5 h-5 animate-pulse" />
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#0e3a7c] rounded-full"></span>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white">
+                <MessageSquare className="w-4 h-4" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-black text-xs sm:text-sm tracking-tight text-white">
-                    Trợ lý AI Hùng Vương
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-xs sm:text-sm text-white">
+                    Tra cứu thông tin hệ thống
                   </h3>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-900 border border-amber-300">
-                    Gemini Flash
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 font-medium bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Trực tuyến
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-200/90 font-medium">
-                  Cố vấn 24/7 • KTX, KPI nề nếp, đơn phép & quy chế
+                <p className="text-[10px] text-blue-100 font-medium">
+                  THPT Chuyên Hùng Vương • EduKPI
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <button
                 onClick={handleClearHistory}
-                title="Làm mới hội thoại"
-                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Làm mới cuộc trò chuyện"
+                className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
                 title={isMinimized ? 'Mở rộng' : 'Thu nhỏ'}
-                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <ChevronDown
                   className={`w-4 h-4 transition-transform duration-200 ${isMinimized ? 'rotate-180' : ''}`}
@@ -307,8 +299,8 @@ export const ChatbotWidget: React.FC = () => {
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                title="Đóng cửa sổ"
-                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Đóng"
+                className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -318,7 +310,7 @@ export const ChatbotWidget: React.FC = () => {
           {!isMinimized && (
             <>
               {/* Message History */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gradient-to-b from-slate-50/70 to-slate-100/40 text-xs">
+              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/60 text-xs">
                 {messages.map((m) => {
                   const isUser = m.role === 'user';
                   return (
@@ -341,25 +333,20 @@ export const ChatbotWidget: React.FC = () => {
                         {/* Footer info & Copy button */}
                         {!isUser && (
                           <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                            <span className="flex items-center gap-1 font-mono text-[9px] text-[#0e3a7c]/70 font-semibold">
-                              <Sparkles className="w-2.5 h-2.5 text-amber-500" />
-                              {m.modelUsed || 'Gemini Flash'}
-                              {m.keyIndex ? ` • Key #${m.keyIndex}` : ''}
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              Trợ lý EduKPI • {m.timestamp}
                             </span>
-                            <div className="flex items-center gap-1.5">
-                              <span>{m.timestamp}</span>
-                              <button
-                                onClick={() => handleCopy(m.id, m.content)}
-                                className="p-1 hover:text-slate-700 transition-colors cursor-pointer"
-                                title="Sao chép nội dung"
-                              >
-                                {copiedId === m.id ? (
-                                  <Check className="w-3 h-3 text-emerald-600" />
-                                ) : (
-                                  <Copy className="w-3 h-3" />
-                                )}
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => handleCopy(m.id, m.content)}
+                              className="p-1 hover:text-slate-700 transition-colors cursor-pointer"
+                              title="Sao chép nội dung"
+                            >
+                              {copiedId === m.id ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
                           </div>
                         )}
 
@@ -382,7 +369,7 @@ export const ChatbotWidget: React.FC = () => {
                       <span className="w-1.5 h-1.5 rounded-full bg-[#0e3a7c] animate-bounce [animation-delay:0.3s]"></span>
                     </div>
                     <span className="text-[11px] font-medium text-slate-600">
-                      Trợ lý AI đang tra cứu & suy luận...
+                      Đang tra cứu dữ liệu...
                     </span>
                   </div>
                 )}
@@ -404,7 +391,7 @@ export const ChatbotWidget: React.FC = () => {
                           key={idx}
                           onClick={() => handleSendMessage(s.prompt)}
                           disabled={isLoading}
-                          className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-[#0e3a7c] border border-slate-200/70 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                          className="px-2.5 py-1 rounded-full bg-slate-50 hover:bg-slate-100 hover:text-[#0e3a7c] border border-slate-200 text-[11px] font-medium text-slate-700 whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                         >
                           <Icon className="w-3 h-3 text-[#0e3a7c]" />
                           {s.label}
@@ -417,14 +404,14 @@ export const ChatbotWidget: React.FC = () => {
 
               {/* Input Area */}
               <div className="p-3 bg-white border-t border-slate-200 flex flex-col gap-1.5">
-                <div className="flex items-end gap-2 bg-slate-50 border border-slate-300/80 rounded-xl p-1.5 focus-within:border-[#0e3a7c] focus-within:ring-2 focus-within:ring-[#0e3a7c]/10 transition-all">
+                <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 focus-within:bg-white focus-within:border-[#0e3a7c] focus-within:ring-2 focus-within:ring-[#0e3a7c]/10 transition-all">
                   <textarea
                     ref={inputRef}
                     rows={1}
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Tra cứu học sinh, phòng KTX, 11 chế độ, KPI, đơn phép, quy chế..."
+                    placeholder="Nhập nội dung cần tra cứu (học sinh, phòng KTX, 11 chế độ, KPI...)"
                     disabled={isLoading}
                     className="flex-1 bg-transparent border-0 resize-none text-xs text-slate-800 placeholder-slate-400 focus:outline-none max-h-24 p-1 leading-relaxed"
                   />
@@ -433,7 +420,7 @@ export const ChatbotWidget: React.FC = () => {
                     disabled={!inputText.trim() || isLoading}
                     className={`p-2 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                       inputText.trim() && !isLoading
-                        ? 'bg-[#0e3a7c] hover:bg-[#0a2a5a] text-white shadow-xs'
+                        ? 'bg-[#0e3a7c] hover:bg-[#0a2754] text-white shadow-xs'
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     }`}
                   >
@@ -441,8 +428,8 @@ export const ChatbotWidget: React.FC = () => {
                   </button>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
-                  <span>Nhấn <strong>Enter</strong> để gửi • <strong>Shift + Enter</strong> xuống dòng</span>
-                  <span className="text-[#0e3a7c] font-bold">THPT Chuyên Hùng Vương AI</span>
+                  <span>Nhấn <strong>Enter</strong> để gửi</span>
+                  <span className="text-slate-400 font-medium">THPT Chuyên Hùng Vương</span>
                 </div>
               </div>
             </>
@@ -450,39 +437,25 @@ export const ChatbotWidget: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Launcher Button */}
+      {/* Floating Launcher Button (Basic, Sang Trọng, Chuẩn Mực) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-[#0e3a7c] via-[#12499c] to-[#0e3a7c] text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-amber-400/80 cursor-pointer"
-          style={{
-            boxShadow: '0 10px 25px -5px rgba(14, 58, 124, 0.4), 0 0 15px 2px rgba(245, 158, 11, 0.3)',
-          }}
-          title="Mở Trợ lý AI Hùng Vương (Gemini Flash 3.8 / 3.7 / 3.6)"
+          className="group flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0e3a7c] hover:bg-[#092652] text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border border-white/20 hover:-translate-y-0.5 active:translate-y-0"
+          title="Tra cứu thông tin & Hỗ trợ"
         >
-          {/* Animated pulsing ring */}
-          <span className="absolute -inset-0.5 rounded-full bg-amber-400/30 animate-ping pointer-events-none"></span>
-
-          <div className="relative">
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-amber-300">
-              <Bot className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-            </div>
+          <div className="relative flex items-center justify-center">
+            <MessageSquare className="w-4 h-4 text-white" />
             {hasUnread && (
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-bounce"></span>
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full"></span>
             )}
           </div>
-
-          <div className="text-left hidden sm:block">
-            <div className="text-xs font-black tracking-tight leading-none text-white flex items-center gap-1">
-              Trợ Lý AI Hùng Vương
-              <Sparkles className="w-3 h-3 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
-            </div>
-            <div className="text-[10px] text-slate-200 font-medium leading-none mt-0.5">
-              Gemini Flash 3.8 / 3.7 / 3.6 • Tra cứu 24/7
-            </div>
-          </div>
+          <span className="text-xs font-semibold tracking-tight text-white pr-0.5">
+            Tra cứu thông tin
+          </span>
         </button>
       )}
     </div>
   );
 };
+
