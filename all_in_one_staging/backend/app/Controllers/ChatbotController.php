@@ -13,11 +13,13 @@ use PDO;
 
 class ChatbotController {
 
+    public const OUT_OF_SCOPE_MESSAGE = 'Xin lỗi bạn, câu hỏi này không nằm trong phạm vi hỗ trợ của Trợ lý AI EduKPI Chuyên Hùng Vương. Tôi chỉ hỗ trợ tra cứu các thông tin liên quan đến quản lý trường học, ký túc xá, điểm danh, học sinh, 11 chế độ sinh hoạt và KPI rèn luyện nề nếp của nhà trường.';
+
     // Default System Knowledge Prompt with deep domain knowledge of THPT Chuyen Hung Vuong or any tenant school
     public static function getDefaultSystemPrompt(array $liveStats = [], array $settings = []): string {
         $schoolName = $settings['school_name'] ?? 'Trường THPT Chuyên Hùng Vương';
         $schoolProvince = $settings['school_province'] ?? 'Phú Thọ';
-        $principalName = $settings['principal_name'] ?? 'Ban Giám hiệu';
+        $principalName = $settings['principal_name'] ?? 'Thầy Đào Mạnh Thắng';
         $vicePrincipals = $settings['vice_principals'] ?? 'Phó Hiệu trưởng';
         $dormManagerName = $settings['dorm_manager_name'] ?? 'Ban Quản sinh KTX';
         $schoolAddress = $settings['school_address'] ?? 'Đại lộ Hùng Vương, TP. Việt Trì, Tỉnh Phú Thọ';
@@ -46,7 +48,17 @@ class ChatbotController {
         }
 
         return <<<PROMPT
-Bạn là "Trợ lý AI Hùng Vương" - Cố vấn thông minh và hỗ trợ viên chính thức của {$schoolName} ({$schoolProvince}) trên Hệ thống Quản lý Ký túc xá & KPI Rèn luyện Nền nếp Học sinh.
+Bạn là "Trợ lý AI Hùng Vương" - Cố vấn thông minh và hỗ trợ viên chính thức của {$schoolName} ({$schoolProvince}) trên Hệ thống Quản lý Ký túc xá & KPI Rèn luyện Nền nếp Học sinh (EduKPI).
+
+QUY TẮC BẮT BUỘC VỀ PHẠM VI HỖ TRỢ (SCOPE BOUNDARY - NGUYÊN TẮC BẤT DI BẤT DỊCH):
+1. Bạn là Trợ lý AI chuyên biệt CHO VÀ CHỈ CHO Hệ thống Quản lý KTX & KPI Rèn luyện Nền nếp Trường THPT Chuyên Hùng Vương (EduKPI).
+2. PHẠM VI HỖ TRỢ DUY NHẤT:
+   - Toàn bộ thông tin, dữ liệu, tính năng, quy định trên website này (học sinh, lớp học, phòng KTX, quân số nội trú/ngoại trú, 11 chế độ sinh hoạt, 10 lỗi vi phạm L01-L10, điểm danh 22h, đơn xin nghỉ phép KTX, mẫu văn bản A4 NĐ 30/2020, tài khoản & phân quyền, hướng dẫn sử dụng trang web).
+   - Thông tin về Trường THPT Chuyên Hùng Vương (Phú Thọ), Ban Giám hiệu (Hiệu trưởng: Thầy Đào Mạnh Thắng), Quản sinh, Đoàn trường, GVCN.
+3. NẾU NGƯỜI DÙNG HỎI VỀ NHỮNG THỨ BÊN NGOÀI WEB (BẤT KỲ VẤN ĐỀ GÌ KHÔNG THUỘC PHẠM VI TRÊN):
+   - Bạn BẮT BUỘC PHẢI TỪ CHỐI LỊCH SỰ và trả lời ĐÚNG NGUYÊN VĂN:
+     "Xin lỗi bạn, câu hỏi này không nằm trong phạm vi hỗ trợ của Trợ lý AI EduKPI Chuyên Hùng Vương. Tôi chỉ hỗ trợ tra cứu các thông tin liên quan đến quản lý trường học, ký túc xá, điểm danh, học sinh, 11 chế độ sinh hoạt và KPI rèn luyện nề nếp của nhà trường."
+   - Tuyệt đối KHÔNG giải toán, KHÔNG viết mã lập trình, KHÔNG bình luận thời sự/chính trị, KHÔNG tư vấn ẩm thực/nấu ăn, KHÔNG trả lời kiến thức bách khoa toàn thư ngoài web.
 
 BẠN CÓ KIẾN THỨC ĐẦY ĐỦ VÀ TOÀN DIỆN VỀ TOÀN BỘ NỘI DUNG VÀ TÍNH NĂNG CỦA HỆ THỐNG WEB:
 $statsText
@@ -249,6 +261,176 @@ PROMPT;
         return substr($key, 0, 7) . '...' . substr($key, -4);
     }
 
+    // Check if query is outside the scope of THPT Chuyen Hung Vuong & EduKPI system
+    public function isOutOfScopeQuery(string $msg): bool {
+        $m = mb_strtolower(trim($msg), 'UTF-8');
+        if ($m === '') return false;
+
+        // 1. Whitelisted domain keywords for school/web:
+        $allowedKeywords = [
+            'ktx', 'ký túc xá', 'ky tuc xa', 'nội trú', 'noi tru', 'ngoại trú', 'ngoai tru',
+            'học sinh', 'hoc sinh', 'lớp', 'lop', 'phòng', 'phong', 'tầng', 'tang',
+            'điểm danh', 'diem danh', 'kpi', 'kỷ luật', 'ky luat', 'vi phạm', 'vi pham',
+            'chế độ', 'che do', 'sinh hoạt', 'sinh hoat', 'đơn', 'don', 'xin phép', 'xin phep',
+            'báo cáo', 'bao cao', 'zalo', 'a4', 'nghị định 30', 'nghi dinh 30', 'hùng vương', 'hung vuong',
+            'chuyên hùng vương', 'chuyen hung vuong', 'thầy kính', 'thay kinh', 'thầy thắng', 'thay thang',
+            'quản sinh', 'quan sinh', 'giáo viên', 'giao vien', 'gvcn', 'trưởng phòng', 'truong phong',
+            'trưởng tầng', 'truong tang', 'đoàn trường', 'doan truong', 'nhà ăn', 'nha an', 'giới nghiêm',
+            'gioi nghiem', 'l01', 'l02', 'l03', 'l04', 'l05', 'l06', 'l07', 'l08', 'l09', 'l10',
+            'web', 'hệ thống', 'he thong', 'tính năng', 'tinh nang', 'hướng dẫn', 'huong dan',
+            'tài khoản', 'tai khoan', 'đăng nhập', 'dang nhap', 'sao lưu', 'sao luu', 'chuyển niên khóa',
+            'chào', 'hello', 'hi', 'bạn là ai', 'giúp gì', 'giới thiệu', 'menu', 'tư vấn', 'tra cứu'
+        ];
+
+        // Specific blatant out-of-scope triggers
+        $outKeywords = [
+            'giải toán', 'bài toán', 'toán học', 'phương trình', 'tích phân', 'đạo hàm', 'hình học', 'giải bài',
+            'code', 'python', 'javascript', 'html', 'lập trình', 'c++', 'java', 'sql server',
+            'thời tiết', 'nấu ăn', 'món ăn', 'công thức', 'phở', 'bún', 'cơm tấm',
+            'bóng đá', 'ngoại hạng anh', 'world cup', 'ca sĩ', 'bài hát', 'phim', 'showbiz',
+            'chính trị', 'tổng thống', 'chiến tranh', 'ukraine', 'nga', 'mỹ', 'tổng bí thư',
+            'kể chuyện cười', 'làm thơ tình', 'chứng khoán', 'tiền ảo', 'bitcoin', 'crypto',
+            'thủ đô của', 'dân số thế giới', 'vũ trụ', 'thiên văn'
+        ];
+
+        // Check if query is clearly asking for off-topic homework, coding, recipes, weather, etc.
+        foreach ($outKeywords as $ow) {
+            if (str_contains($m, $ow)) {
+                return true;
+            }
+        }
+
+        // If contains school/web keywords -> Definitely in-scope!
+        foreach ($allowedKeywords as $kw) {
+            if (str_contains($m, $kw)) {
+                return false;
+            }
+        }
+
+        // Check if message mentions specific class names (10 toán, 11 lý, 12 hóa...)
+        if (preg_match('/\b(10|11|12)\s*(toán|tin|lý|hóa|sinh|văn|sử|địa|anh|pháp|nga|trung|a[1-9]|d[1-9])/ui', $m)) {
+            return false;
+        }
+
+        // Check if mentions room numbers (201, 202... 624)
+        if (preg_match('/\b[2-6][0-2][0-9]\b/u', $m)) {
+            return false;
+        }
+
+        // If very short greeting/prompt, allow
+        if (mb_strlen($m, 'UTF-8') <= 15 && (str_contains($m, 'alo') || str_contains($m, 'ơi') || str_contains($m, 'bạn'))) {
+            return false;
+        }
+
+        // Otherwise, if no school context is present, treat as out of scope
+        return true;
+    }
+
+    // Live Dynamic Database Context Retrieval
+    private function retrieveRelevantContext(PDO $db, string $userMessage): string {
+        $msg = mb_strtolower($userMessage, 'UTF-8');
+        $context = [];
+
+        try {
+            // 1. Detect Room inquiries (e.g. "phòng 201", "p305", "phòng 402", "phòng nam", "phòng nữ")
+            if (preg_match('/(?:phòng|p\.?)\s*([0-9]{3})/ui', $msg, $matches) || preg_match('/\b([2-6][0-2][0-9])\b/u', $msg, $matches)) {
+                $roomNum = $matches[1];
+                $stmt = $db->prepare("
+                    SELECT r.room_number, r.floor, r.capacity, r.current_occupancy, r.gender_type, r.status,
+                           GROUP_CONCAT(CONCAT(s.full_name, ' (', COALESCE(c.name, 'Chưa rõ lớp'), ')') ORDER BY s.full_name SEPARATOR ', ') as students
+                    FROM dormitory_rooms r
+                    LEFT JOIN students s ON s.room_id = r.id
+                    LEFT JOIN classes c ON s.class_id = c.id
+                    WHERE r.room_number LIKE ?
+                    GROUP BY r.id
+                    LIMIT 3
+                ");
+                $stmt->execute(["%$roomNum%"]);
+                $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($rooms)) {
+                    $context[] = "[TRA CỨU TRỰC TIẾP DỮ LIỆU THỜI GIAN THỰC - PHÒNG KTX]:";
+                    foreach ($rooms as $r) {
+                        $gender = $r['gender_type'] === 'male' ? 'Nam' : 'Nữ';
+                        $studList = !empty($r['students']) ? $r['students'] : 'Chưa có học sinh ở';
+                        $context[] = "- Phòng {$r['room_number']} (Tầng {$r['floor']}, Dành cho {$gender}): Sức chứa {$r['capacity']} em, hiện có {$r['current_occupancy']} em. Danh sách học sinh: {$studList}.";
+                    }
+                }
+            }
+
+            // 2. Detect Student inquiries (by name or code or "tìm học sinh")
+            if (str_contains($msg, 'học sinh') || str_contains($msg, 'em') || str_contains($msg, 'bạn') || str_contains($msg, 'tìm')) {
+                $cleaned = trim(preg_replace('/(tìm|học sinh|em|bạn|thông tin|hồ sơ|điểm kpi của|lớp|cho tôi biết về|ai là)/ui', '', $msg));
+                if (mb_strlen($cleaned, 'UTF-8') >= 2) {
+                    $stmt = $db->prepare("
+                        SELECT s.full_name, s.student_code, s.gender, s.is_boarding, s.kpi_points,
+                               c.name as class_name, r.room_number
+                        FROM students s
+                        LEFT JOIN classes c ON s.class_id = c.id
+                        LEFT JOIN dormitory_rooms r ON s.room_id = r.id
+                        WHERE s.full_name LIKE ? OR s.student_code LIKE ?
+                        LIMIT 5
+                    ");
+                    $stmt->execute(["%$cleaned%", "%$cleaned%"]);
+                    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    if (!empty($students)) {
+                        $context[] = "[TRA CỨU TRỰC TIẾP DỮ LIỆU THỜI GIAN THỰC - HỒ SƠ HỌC SINH]:";
+                        foreach ($students as $s) {
+                            $type = $s['is_boarding'] ? 'Nội trú KTX' : 'Ngoại trú';
+                            $room = !empty($s['room_number']) ? "Phòng {$s['room_number']}" : 'Chưa xếp phòng';
+                            $context[] = "- Học sinh: {$s['full_name']} (Mã HS: {$s['student_code']}), Lớp: {$s['class_name']}, Diện: {$type} ({$room}), Điểm KPI rèn luyện: {$s['kpi_points']} điểm.";
+                        }
+                    }
+                }
+            }
+
+            // 3. Detect Class inquiries
+            if (preg_match('/lớp\s*([0-9]{1,2}\s*[a-zA-Z0-9\x{00C0}-\x{024F}\x{1E00}-\x{1EFF}]+)/ui', $msg, $cMatches)) {
+                $className = trim($cMatches[1]);
+                $stmt = $db->prepare("
+                    SELECT c.name, c.grade, c.specialized_subject, c.homeroom_teacher_name,
+                           COUNT(s.id) as total_students,
+                           SUM(CASE WHEN s.is_boarding = 1 THEN 1 ELSE 0 END) as boarding_count
+                    FROM classes c
+                    LEFT JOIN students s ON s.class_id = c.id
+                    WHERE c.name LIKE ?
+                    GROUP BY c.id
+                    LIMIT 3
+                ");
+                $stmt->execute(["%$className%"]);
+                $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($classes)) {
+                    $context[] = "[TRA CỨU TRỰC TIẾP DỮ LIỆU THỜI GIAN THỰC - THÔNG TIN LỚP HỌC]:";
+                    foreach ($classes as $c) {
+                        $context[] = "- Lớp {$c['name']} (Khối {$c['grade']}): GVCN: " . ($c['homeroom_teacher_name'] ?: 'Chưa cập nhật') . ", Sĩ số: {$c['total_students']} học sinh ({$c['boarding_count']} học sinh nội trú KTX).";
+                    }
+                }
+            }
+
+            // 4. Detect Today's Absences & Leaves
+            if (str_contains($msg, 'vắng') || str_contains($msg, 'ai vắng') || str_contains($msg, 'nghỉ') || str_contains($msg, 'xin phép')) {
+                $stmt = $db->query("
+                    SELECT lr.student_name, lr.class_name, lr.room_code, lr.request_type, lr.reason, lr.start_time, lr.expected_end_time, lr.status
+                    FROM leave_requests lr
+                    WHERE lr.status IN ('pending', 'approved')
+                    ORDER BY lr.id DESC
+                    LIMIT 5
+                ");
+                $leaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($leaves)) {
+                    $context[] = "[TRA CỨU TRỰC TIẾP DỮ LIỆU THỜI GIAN THỰC - ĐƠN XIN PHÉP KTX GẦN ĐÂY]:";
+                    foreach ($leaves as $l) {
+                        $statusStr = $l['status'] === 'pending' ? 'Chờ duyệt' : 'Đã duyệt';
+                        $context[] = "- HS: {$l['student_name']} (Lớp {$l['class_name']}, Phòng {$l['room_code']}): Lý do \"{$l['reason']}\" [{$statusStr}], thời gian: {$l['start_time']} đến {$l['expected_end_time']}.";
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore retrieval errors
+        }
+
+        return !empty($context) ? "\n" . implode("\n", $context) . "\n" : "";
+    }
+
     /**
      * Send message to Chatbot
      * POST /api/chatbot/message
@@ -264,6 +446,17 @@ PROMPT;
             return;
         }
 
+        // Guardrail: Nếu câu hỏi nằm ngoài phạm vi web/trường học -> Từ chối ngay lập tức
+        if ($this->isOutOfScopeQuery($userMessage)) {
+            Response::success([
+                'reply' => self::OUT_OF_SCOPE_MESSAGE,
+                'model_used' => 'Trợ lý AI Hùng Vương (Kiểm soát phạm vi)',
+                'key_index' => null,
+                'total_keys_available' => 0,
+            ]);
+            return;
+        }
+
         $settings = $this->getSchoolSettings($db);
         $keysList = $this->parseKeysArray($settings['gemini_api_keys'] ?? null);
         $configuredModel = !empty($settings['gemini_model']) ? trim($settings['gemini_model']) : 'gemini-3.8-flash';
@@ -272,6 +465,12 @@ PROMPT;
 
         $liveStats = $this->getLiveStats($db);
         $systemPrompt = !empty(trim($customPrompt)) ? $customPrompt : self::getDefaultSystemPrompt($liveStats, $settings);
+
+        // Inject real-time database search context (students, rooms, classes, leaves)
+        $liveContext = $this->retrieveRelevantContext($db, $userMessage);
+        if (!empty($liveContext)) {
+            $systemPrompt .= "\n" . $liveContext;
+        }
 
         // Find non-empty keys
         $validKeyIndices = [];
@@ -311,10 +510,17 @@ PROMPT;
             'parts' => [['text' => $userMessage]]
         ];
 
-        // Model fallback chain: user selected model, then 2.0-flash, then 1.5-flash
-        $modelsToTry = [$configuredModel];
-        if (!in_array('gemini-2.0-flash', $modelsToTry)) $modelsToTry[] = 'gemini-2.0-flash';
-        if (!in_array('gemini-1.5-flash', $modelsToTry)) $modelsToTry[] = 'gemini-1.5-flash';
+        // Model fallback chain: user selected model, then Gemini Flash 3.8 -> 3.7 -> 3.6 -> 2.5 -> 2.0 -> 1.5
+        $modelsToTry = array_values(array_unique(array_filter([
+            $configuredModel,
+            'gemini-3.8-flash',
+            'gemini-3.7-flash',
+            'gemini-3.6-flash',
+            'gemini-2.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest'
+        ])));
 
         // Rotate through available keys ("nhập 10 key dùng dần")
         $totalValid = count($validKeyIndices);
@@ -647,6 +853,10 @@ PROMPT;
      */
     private function generateSmartLocalReply(string $msg, array $stats): string {
         $m = mb_strtolower($msg, 'UTF-8');
+
+        if ($this->isOutOfScopeQuery($msg)) {
+            return self::OUT_OF_SCOPE_MESSAGE;
+        }
 
         if (str_contains($m, 'phòng') || str_contains($m, 'ktx') || str_contains($m, 'ký túc xá') || str_contains($m, 'bao nhiêu phòng') || str_contains($m, 'sơ đồ')) {
             return "🏨 **THÔNG TIN KÝ TÚC XÁ THPT CHUYÊN HÙNG VƯƠNG:**\n\n" .

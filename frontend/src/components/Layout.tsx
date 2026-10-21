@@ -28,6 +28,7 @@ import {
 import { useSchoolSettings } from '../context/SchoolSettingsContext';
 import { SchoolLogo } from './SchoolLogo';
 import { LeaveTickerBanner } from './LeaveTickerBanner';
+import { ChatbotWidget } from './ChatbotWidget';
 
 const roleLabels: Record<string, { label: string; color: string }> = {
   admin: { label: 'Admin (Toàn quyền)', color: 'bg-red-100 text-red-800 border-red-200' },
@@ -367,6 +368,9 @@ export const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Floating AI Gemini Chatbot Widget */}
+      <ChatbotWidget />
     </div>
   );
 };

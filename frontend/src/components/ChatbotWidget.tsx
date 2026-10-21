@@ -68,14 +68,15 @@ export const ChatbotWidget: React.FC = () => {
         id: 'welcome-1',
         role: 'assistant',
         content:
-          'Xin chào! Tôi là **Trợ lý AI Hùng Vương** - Cố vấn thông minh được tích hợp Google Gemini Flash AI.\n\n' +
-          'Tôi có thể tư vấn đầy đủ và chính xác về:\n' +
-          '• **Sơ đồ 120 phòng KTX** & quân số 1.883 học sinh (702 nội trú, 1.181 ngoại trú).\n' +
+          'Xin chào! Tôi là **Trợ lý AI EduKPI Chuyên Hùng Vương** - Cố vấn thông minh được tích hợp Google Gemini Flash AI (3.8 / 3.7 / 3.6).\n\n' +
+          'Tôi chuyên hỗ trợ **tra cứu toàn diện thông tin trên hệ thống web nhà trường**:\n' +
+          '• **Sơ đồ 120 phòng KTX** & danh sách 1.883 học sinh (Nội trú / Ngoại trú).\n' +
           '• **10 tiêu chí KPI & kỷ luật** (L01 - L10) cùng thang điểm rèn luyện.\n' +
           '• **11 chế độ sinh hoạt hàng ngày** từ báo thức 05:30 đến tắt đèn 22:30.\n' +
           '• **Điểm danh 22:00, xuất báo cáo Zalo 22:15** & đơn xin phép vắng mặt.\n' +
           '• **Mẫu in văn bản A4 chuẩn Nghị định 30/2020**.\n\n' +
-          'Bạn cần tìm hiểu hoặc hỗ trợ nội dung nào?',
+          '🔒 *Phạm vi hỗ trợ:* Trợ lý chuyên trách tra cứu dữ liệu web và quy chế trường học. Các câu hỏi ngoài phạm vi hệ thống sẽ được từ chối theo quy định.\n\n' +
+          'Bạn cần tra cứu hoặc tìm hiểu thông tin nào?',
         modelUsed: 'Gemini Flash 3.8',
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       },
@@ -423,7 +424,7 @@ export const ChatbotWidget: React.FC = () => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Hỏi về KTX, điểm danh, KPI, đơn phép, quy chế..."
+                    placeholder="Tra cứu học sinh, phòng KTX, 11 chế độ, KPI, đơn phép, quy chế..."
                     disabled={isLoading}
                     className="flex-1 bg-transparent border-0 resize-none text-xs text-slate-800 placeholder-slate-400 focus:outline-none max-h-24 p-1 leading-relaxed"
                   />
@@ -457,7 +458,7 @@ export const ChatbotWidget: React.FC = () => {
           style={{
             boxShadow: '0 10px 25px -5px rgba(14, 58, 124, 0.4), 0 0 15px 2px rgba(245, 158, 11, 0.3)',
           }}
-          title="Mở Trợ lý AI Hùng Vương"
+          title="Mở Trợ lý AI Hùng Vương (Gemini Flash 3.8 / 3.7 / 3.6)"
         >
           {/* Animated pulsing ring */}
           <span className="absolute -inset-0.5 rounded-full bg-amber-400/30 animate-ping pointer-events-none"></span>
@@ -477,7 +478,7 @@ export const ChatbotWidget: React.FC = () => {
               <Sparkles className="w-3 h-3 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
             </div>
             <div className="text-[10px] text-slate-200 font-medium leading-none mt-0.5">
-              Gemini Flash • Tư vấn 24/7
+              Gemini Flash 3.8 / 3.7 / 3.6 • Tra cứu 24/7
             </div>
           </div>
         </button>

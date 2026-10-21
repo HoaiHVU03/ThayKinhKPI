@@ -566,6 +566,14 @@ export const AdminPage: React.FC = () => {
           <Building2 className="w-4 h-4" /> Khởi tạo trường mới & Dữ liệu mẫu
         </button>
         <button
+          onClick={() => setActiveTab('chatbot')}
+          className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'chatbot' ? 'bg-[#0e3a7c] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Bot className="w-4 h-4 text-amber-500" /> Cấu hình AI Gemini Chatbot (10 Key)
+        </button>
+        <button
           onClick={() => setActiveTab('logs')}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'logs' ? 'bg-[#0e3a7c] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
@@ -1404,8 +1412,8 @@ export const AdminPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab Chatbot: Removed */}
-      {false && (
+      {/* Tab Chatbot */}
+      {activeTab === 'chatbot' && (
         <div className="space-y-6">
           {/* Top Banner & Overview */}
           <div className="bg-white rounded-xl p-6 border border-slate-200">
