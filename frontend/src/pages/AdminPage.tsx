@@ -272,10 +272,20 @@ export const AdminPage: React.FC = () => {
         ...prev,
         [id]: {
           valid: true,
-          message: `Thành công (${res.model_used || 'Gemini'}, ${res.latency_ms || 200}ms)`,
+          message: res.message || `API Key hợp lệ! (${res.model_used || 'Gemini'}, ${res.latency_ms || 200}ms)`,
           latency_ms: res.latency_ms,
         },
       }));
+
+      // Cập nhật trạng thái key trong state nếu kiểm tra thành công
+      setChatbotSettings((prev) => {
+        const newKeys = [...prev.keys];
+        const idx = newKeys.findIndex((k) => k.id === id);
+        if (idx !== -1 && (newKeys[idx].status === 'error' || newKeys[idx].status === 'empty')) {
+          newKeys[idx].status = 'ready';
+        }
+        return { ...prev, keys: newKeys };
+      });
     } catch (err: any) {
       setTestResults((prev) => ({
         ...prev,

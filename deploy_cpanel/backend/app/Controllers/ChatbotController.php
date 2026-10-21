@@ -510,16 +510,18 @@ PROMPT;
             'parts' => [['text' => $userMessage]]
         ];
 
-        // Model fallback chain: user selected model, then Gemini Flash 3.8 -> 3.7 -> 3.6 -> 2.5 -> 2.0 -> 1.5
+        // Model fallback chain: user selected model, then Gemini 2.0 -> 2.5 -> 3.x Flash
+        $cleanConfigured = ltrim(str_replace('models/', '', $configuredModel), '/');
         $modelsToTry = array_values(array_unique(array_filter([
-            $configuredModel,
+            $cleanConfigured,
+            'gemini-2.0-flash',
+            'gemini-2.5-flash',
             'gemini-3.8-flash',
             'gemini-3.7-flash',
             'gemini-3.6-flash',
-            'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest'
+            'gemini-2.0-flash-lite',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash'
         ])));
 
         // Rotate through available keys ("nhập 10 key dùng dần")
@@ -602,7 +604,8 @@ PROMPT;
 
     // Call Google Gemini REST API v1beta
     private function callGeminiApi(string $apiKey, string $model, string $systemPrompt, array $contents): array {
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/" . urlencode($model) . ":generateContent?key=" . urlencode($apiKey);
+        $cleanModel = ltrim(str_replace('models/', '', $model), '/');
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/" . urlencode($cleanModel) . ":generateContent?key=" . urlencode($apiKey);
 
         $payload = [
             'contents' => $contents,
@@ -625,7 +628,10 @@ PROMPT;
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-goog-api-key: ' . $apiKey
+            ],
             CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
             CURLOPT_TIMEOUT => 25,
             CURLOPT_SSL_VERIFYPEER => false,
@@ -654,6 +660,49 @@ PROMPT;
         }
 
         return ['success' => true, 'reply' => $text, 'http_code' => 200];
+    }
+
+    // Query Google Gemini ListModels API to discover exact supported models for this API key
+    private function fetchAvailableModels(string $apiKey): array {
+        $url = "https://generativelanguage.googleapis.com/v1beta/models?key=" . urlencode($apiKey);
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-goog-api-key: ' . $apiKey
+            ]
+        ]);
+        $rawResponse = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            return ['success' => false, 'error' => "Curl Error: $curlError", 'models' => []];
+        }
+
+        $resJson = json_decode($rawResponse, true);
+
+        if ($httpCode !== 200) {
+            $msg = $resJson['error']['message'] ?? "HTTP $httpCode Error";
+            return ['success' => false, 'error' => "HTTP $httpCode: $msg", 'models' => []];
+        }
+
+        $available = [];
+        if (!empty($resJson['models']) && is_array($resJson['models'])) {
+            foreach ($resJson['models'] as $m) {
+                $methods = $m['supportedGenerationMethods'] ?? [];
+                if (in_array('generateContent', $methods, true)) {
+                    $available[] = str_replace('models/', '', $m['name']);
+                }
+            }
+        }
+
+        return ['success' => true, 'models' => $available];
     }
 
     // Save active key index and key statistics back to database
@@ -805,7 +854,7 @@ PROMPT;
 
         $body = $request->getBody();
         $key = trim($body['key'] ?? '');
-        $model = trim($body['model'] ?? 'gemini-3.8-flash');
+        $requestedModel = trim($body['model'] ?? 'gemini-2.0-flash');
 
         if (empty($key)) {
             Response::error('Vui lòng nhập API Key cần kiểm tra', 400);
@@ -813,9 +862,66 @@ PROMPT;
         }
 
         $startTime = microtime(true);
-        $modelsToTry = [$model, 'gemini-2.0-flash', 'gemini-1.5-flash'];
-        $lastResult = null;
+
+        // 1. Kiểm tra API Key và truy vấn danh sách model thực tế được cấp phép
+        $listResult = $this->fetchAvailableModels($key);
+        if (!$listResult['success']) {
+            $rawError = $listResult['error'];
+            $userMsg = 'API Key không hợp lệ hoặc đã hết hạn ngạch';
+            if (str_contains($rawError, '400') || str_contains(strtolower($rawError), 'api key not valid')) {
+                $userMsg = 'API Key không hợp lệ (Mã key sai hoặc không tồn tại trên Google AI Studio)';
+            } elseif (str_contains($rawError, '403')) {
+                $userMsg = 'API Key bị từ chối truy cập (HTTP 403 Forbidden - Hãy kiểm tra quyền hạn tài khoản)';
+            } elseif (str_contains($rawError, '429')) {
+                $userMsg = 'API Key đã vượt quá hạn ngạch (HTTP 429 Quota Exceeded)';
+            }
+            Response::error("$userMsg: $rawError", 400, [
+                'valid' => false,
+                'error' => $rawError
+            ]);
+            return;
+        }
+
+        $availableModels = $listResult['models'];
+
+        // 2. Lập danh sách các model khả dụng ưu tiên để gửi ping test
+        $cleanReq = ltrim(str_replace('models/', '', $requestedModel), '/');
+        $modelsToTry = [];
+        if (in_array($cleanReq, $availableModels, true)) {
+            $modelsToTry[] = $cleanReq;
+        }
+
+        $preferredOrder = [
+            'gemini-2.0-flash',
+            'gemini-2.5-flash',
+            'gemini-3.8-flash',
+            'gemini-3.7-flash',
+            'gemini-3.6-flash',
+            'gemini-2.0-flash-lite',
+            'gemini-2.5-flash-lite',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
+        ];
+
+        foreach ($preferredOrder as $po) {
+            if (in_array($po, $availableModels, true) && !in_array($po, $modelsToTry, true)) {
+                $modelsToTry[] = $po;
+            }
+        }
+
+        foreach ($availableModels as $am) {
+            if (!in_array($am, $modelsToTry, true)) {
+                $modelsToTry[] = $am;
+            }
+        }
+
+        if (empty($modelsToTry)) {
+            $modelsToTry = [$cleanReq, 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest'];
+        }
+
         $workedModel = null;
+        $lastResult = null;
 
         foreach ($modelsToTry as $m) {
             $result = $this->callGeminiApi(
@@ -836,14 +942,17 @@ PROMPT;
         if ($workedModel !== null) {
             Response::success([
                 'valid' => true,
-                'message' => 'API Key hợp lệ và hoạt động tốt!',
+                'message' => "API Key hợp lệ! Hoạt động tốt với mô hình {$workedModel} ({$latency}ms).",
                 'model_used' => $workedModel,
+                'available_models' => $availableModels,
                 'latency_ms' => $latency
             ], 'Kiểm tra API Key thành công');
         } else {
-            Response::error('API Key không hợp lệ hoặc đã hết hạn ngạch: ' . ($lastResult['error'] ?? 'Lỗi không xác định'), 400, [
+            $errDetail = $lastResult['error'] ?? 'Không nhận được phản hồi tạo nội dung từ Google';
+            Response::error("Key hợp lệ nhưng không thể tạo phản hồi: $errDetail", 400, [
                 'valid' => false,
-                'error' => $lastResult['error'] ?? 'Lỗi kết nối'
+                'error' => $errDetail,
+                'available_models' => $availableModels
             ]);
         }
     }
