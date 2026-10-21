@@ -1415,24 +1415,23 @@ export const AdminPage: React.FC = () => {
       {/* Tab Chatbot */}
       {activeTab === 'chatbot' && (
         <div className="space-y-6">
-          {/* Top Banner & Overview */}
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-amber-400/10 to-transparent pointer-events-none"></div>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          {/* Top Banner & Overview - Thiết kế Executive Luxury, tương phản cao, rõ ràng */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="p-2 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 text-amber-300">
-                    <Bot className="w-6 h-6 animate-pulse" />
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0e3a7c] shadow-2xs">
+                    <Bot className="w-5 h-5" />
                   </span>
                   <div>
-                    <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-                      Cấu hình trợ lý AI Gemini chatbot
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-900 border border-amber-300">
-                        10 key dùng dần
+                    <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                      Cấu hình trợ lý tra cứu hệ thống
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#0e3a7c] border border-blue-200">
+                        10 key luân chuyển
                       </span>
                     </h2>
-                    <p className="text-xs text-slate-200">
-                      Tư vấn toàn diện 24/7 về 120 phòng KTX, 1.883 học sinh, 11 chế độ sinh hoạt & 10 quy tắc KPI
+                    <p className="text-xs text-slate-500 font-normal">
+                      Tự động tra cứu 24/7 về 120 phòng KTX, 1.883 học sinh, 11 chế độ sinh hoạt & 10 quy tắc KPI
                     </p>
                   </div>
                 </div>
@@ -1443,44 +1442,44 @@ export const AdminPage: React.FC = () => {
                   type="button"
                   onClick={() => handleSaveChatbotSettings()}
                   disabled={chatbotSaving}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer text-xs"
+                  className="px-5 py-2.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer text-xs"
                 >
                   {chatbotSaving ? (
-                    <span className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></span>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  Lưu cấu hình AI
+                  Lưu cấu hình
                 </button>
               </div>
             </div>
 
             {/* Quick Stat Indicators */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-white/15">
-              <div className="bg-white/10 backdrop-blur-xs rounded-xl p-3 border border-white/15">
-                <div className="text-[10px] uppercase font-bold text-slate-300 flex items-center gap-1">
-                  <Cpu className="w-3.5 h-3.5 text-amber-300" /> Mô hình đang chọn
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-slate-100">
+              <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/80">
+                <div className="text-[11px] uppercase font-bold text-slate-500 flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-[#0e3a7c]" /> Mô hình đang chọn
                 </div>
-                <div className="text-sm font-black text-amber-300 mt-1 font-mono">
+                <div className="text-sm font-bold text-[#0e3a7c] mt-1 font-mono">
                   {chatbotSettings.active_model}
                 </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-xs rounded-xl p-3 border border-white/15">
-                <div className="text-[10px] uppercase font-bold text-slate-300 flex items-center gap-1">
-                  <Key className="w-3.5 h-3.5 text-emerald-300" /> Bể chứa API Key
+              <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/80">
+                <div className="text-[11px] uppercase font-bold text-slate-500 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-emerald-600" /> Bể chứa API Key
                 </div>
-                <div className="text-sm font-black text-emerald-300 mt-1">
+                <div className="text-sm font-bold text-emerald-700 mt-1">
                   {chatbotSettings.keys.filter((k) => k.key && k.key.trim() !== '').length} / 10 Key đã nhập
                 </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-xs rounded-xl p-3 border border-white/15">
-                <div className="text-[10px] uppercase font-bold text-slate-300 flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5 text-sky-300" /> Cơ chế luân chuyển
+              <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/80">
+                <div className="text-[11px] uppercase font-bold text-slate-500 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-600" /> Cơ chế luân chuyển
                 </div>
-                <div className="text-xs font-bold text-sky-200 mt-1">
-                  Key #{chatbotSettings.active_key_index + 1} khởi đầu • Tự luân chuyển khi 429
+                <div className="text-xs font-semibold text-slate-700 mt-1">
+                  Key #{chatbotSettings.active_key_index + 1} khởi đầu • Tự luân chuyển khi gặp 429
                 </div>
               </div>
             </div>
@@ -1490,7 +1489,7 @@ export const AdminPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
+                <Sparkles className="w-4 h-4 text-[#0e3a7c]" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                   1. Chọn Phiên Bản Mô Hình Google Gemini Flash
                 </h3>
@@ -1564,11 +1563,11 @@ export const AdminPage: React.FC = () => {
                           {m.tag}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-600 leading-relaxed">{m.desc}</p>
+                      <p className="text-[11px] text-slate-700 leading-relaxed font-normal">{m.desc}</p>
                     </div>
-                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                      <span>Endpoint: v1beta</span>
-                      <span className={isSelected ? 'text-[#0e3a7c] font-bold' : ''}>
+                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-slate-500">Endpoint: v1beta</span>
+                      <span className={isSelected ? 'text-[#0e3a7c] font-bold' : 'text-slate-500 font-medium'}>
                         {isSelected ? 'Đang chọn' : 'Nhấp để chọn'}
                       </span>
                     </div>
@@ -1601,7 +1600,7 @@ export const AdminPage: React.FC = () => {
                   2. Bể 10 Gemini API Key (Cơ Chế "Dùng Dần" & Tự Động Luân Chuyển)
                 </h3>
               </div>
-              <div className="text-[11px] text-slate-500 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-emerald-900 font-medium">
+              <div className="text-[11px] bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-emerald-800 font-medium flex items-center gap-1.5">
                 💡 Tự động thử Key tiếp theo khi gặp hạn ngạch 429
               </div>
             </div>
@@ -1614,7 +1613,7 @@ export const AdminPage: React.FC = () => {
                 const isTesting = testingKeyId === k.id;
 
                 let statusBadge = (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
                     Chưa nhập
                   </span>
                 );
@@ -1622,26 +1621,26 @@ export const AdminPage: React.FC = () => {
                 if (k.key && k.key.trim()) {
                   if (isStartingKey) {
                     statusBadge = (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                         Đang hoạt động
                       </span>
                     );
                   } else if (k.status === 'exhausted') {
                     statusBadge = (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                         Hết hạn ngạch (429)
                       </span>
                     );
                   } else if (k.status === 'error') {
                     statusBadge = (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300">
                         Lỗi
                       </span>
                     );
                   } else {
                     statusBadge = (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200">
                         Sẵn sàng (Dự phòng)
                       </span>
                     );
@@ -1754,12 +1753,12 @@ export const AdminPage: React.FC = () => {
                       </div>
 
                       {/* Right: Usage stats */}
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono shrink-0">
-                        <span>{k.calls} gọi</span>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-700 font-mono shrink-0">
+                        <span className="font-medium">{k.calls} lượt gọi</span>
                         {k.errors > 0 && <span className="text-rose-600 font-bold">{k.errors} lỗi</span>}
                         {k.last_used && (
-                          <span className="text-slate-400 text-[10px]">
-                            Dùng lúc: {k.last_used.slice(11, 16)}
+                          <span className="text-slate-500 text-[10px]">
+                            Lần cuối: {k.last_used.slice(11, 16)}
                           </span>
                         )}
                       </div>
