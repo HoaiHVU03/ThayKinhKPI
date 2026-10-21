@@ -13,7 +13,7 @@ use PDO;
 
 class ChatbotController {
 
-    public const OUT_OF_SCOPE_MESSAGE = 'Xin lỗi bạn, câu hỏi này không nằm trong phạm vi hỗ trợ của Trợ lý AI EduKPI Chuyên Hùng Vương. Tôi chỉ hỗ trợ tra cứu các thông tin liên quan đến quản lý trường học, ký túc xá, điểm danh, học sinh, 11 chế độ sinh hoạt và KPI rèn luyện nề nếp của nhà trường.';
+    public const OUT_OF_SCOPE_MESSAGE = 'Xin lỗi bạn, câu hỏi này không nằm trong phạm vi hỗ trợ của Trợ lý AI Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ. Tôi chỉ hỗ trợ tra cứu các thông tin liên quan đến quản lý trường học, ký túc xá, điểm danh, học sinh, 11 chế độ sinh hoạt và KPI rèn luyện nề nếp của nhà trường.';
 
     // Default System Knowledge Prompt with deep domain knowledge of THPT Chuyen Hung Vuong or any tenant school
     public static function getDefaultSystemPrompt(array $liveStats = [], array $settings = []): string {
@@ -48,16 +48,16 @@ class ChatbotController {
         }
 
         return <<<PROMPT
-Bạn là "Trợ lý AI Hùng Vương" - Cố vấn thông minh và hỗ trợ viên chính thức của {$schoolName} ({$schoolProvince}) trên Hệ thống Quản lý Ký túc xá & KPI Rèn luyện Nền nếp Học sinh (EduKPI).
+Bạn là "Trợ lý AI Hùng Vương" - Cố vấn thông minh và hỗ trợ viên chính thức của {$schoolName} ({$schoolProvince}) trên Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ (EduKPI).
 
 QUY TẮC BẮT BUỘC VỀ PHẠM VI HỖ TRỢ (SCOPE BOUNDARY - NGUYÊN TẮC BẤT DI BẤT DỊCH):
-1. Bạn là Trợ lý AI chuyên biệt CHO VÀ CHỈ CHO Hệ thống Quản lý KTX & KPI Rèn luyện Nền nếp Trường THPT Chuyên Hùng Vương (EduKPI).
+1. Bạn là Trợ lý AI chuyên biệt CHO VÀ CHỈ CHO Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ.
 2. PHẠM VI HỖ TRỢ DUY NHẤT:
    - Toàn bộ thông tin, dữ liệu, tính năng, quy định trên website này (học sinh, lớp học, phòng KTX, quân số nội trú/ngoại trú, 11 chế độ sinh hoạt, 10 lỗi vi phạm L01-L10, điểm danh 22h, đơn xin nghỉ phép KTX, mẫu văn bản A4 NĐ 30/2020, tài khoản & phân quyền, hướng dẫn sử dụng trang web).
    - Thông tin về Trường THPT Chuyên Hùng Vương (Phú Thọ), Ban Giám hiệu (Hiệu trưởng: Thầy Đào Mạnh Thắng), Quản sinh, Đoàn trường, GVCN.
 3. NẾU NGƯỜI DÙNG HỎI VỀ NHỮNG THỨ BÊN NGOÀI WEB (BẤT KỲ VẤN ĐỀ GÌ KHÔNG THUỘC PHẠM VI TRÊN):
    - Bạn BẮT BUỘC PHẢI TỪ CHỐI LỊCH SỰ và trả lời ĐÚNG NGUYÊN VĂN:
-     "Xin lỗi bạn, câu hỏi này không nằm trong phạm vi hỗ trợ của Trợ lý AI EduKPI Chuyên Hùng Vương. Tôi chỉ hỗ trợ tra cứu các thông tin liên quan đến quản lý trường học, ký túc xá, điểm danh, học sinh, 11 chế độ sinh hoạt và KPI rèn luyện nề nếp của nhà trường."
+     "Xin lỗi bạn, câu hỏi này không nằm trong phạm vi hỗ trợ của Trợ lý AI Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ. Tôi chỉ hỗ trợ tra cứu các thông tin liên quan đến quản lý trường học, ký túc xá, điểm danh, học sinh, 11 chế độ sinh hoạt và KPI rèn luyện nề nếp của nhà trường."
    - Tuyệt đối KHÔNG giải toán, KHÔNG viết mã lập trình, KHÔNG bình luận thời sự/chính trị, KHÔNG tư vấn ẩm thực/nấu ăn, KHÔNG trả lời kiến thức bách khoa toàn thư ngoài web.
 
 BẠN CÓ KIẾN THỨC ĐẦY ĐỦ VÀ TOÀN DIỆN VỀ TOÀN BỘ NỘI DUNG VÀ TÍNH NĂNG CỦA HỆ THỐNG WEB:
@@ -1245,7 +1245,7 @@ PROMPT;
         }
 
         // 10. Default General Welcome (when user says hello or general inquiries)
-        return "Chào bạn! Tôi là **Trợ lý AI Hùng Vương** - Cố vấn thông minh Hệ thống Quản lý Ký túc xá & KPI Nền nếp Trường THPT Chuyên Hùng Vương.\n\n" .
+        return "Chào bạn! Tôi là **Trợ lý AI Hùng Vương** - Cố vấn thông minh **Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ**.\n\n" .
             "Hiện tại hệ thống đang quản lý:\n" .
             "- **" . ($stats['total_students'] ?? 1883) . " học sinh** thuộc **54 lớp chuyên** (" . ($stats['total_boarding'] ?? 702) . " nội trú KTX, " . ($stats['total_day'] ?? 1181) . " ngoại trú).\n" .
             "- **120 phòng KTX** trải rộng trên 6 tầng.\n" .

@@ -551,7 +551,7 @@ export const LoginPage: React.FC = () => {
 
       {/* ==================== FOOTER ==================== */}
       <footer className="w-full text-center py-3 text-slate-500 text-xs">
-        © 2026 {schoolSettings.school_name || 'Hệ thống Quản lý KTX & KPI Học đường'}. Bảo mật dữ liệu đa trường học.
+        © 2026 {schoolSettings.school_name || 'Hệ thống đánh giá KPI nền nếp học sinh trường THPT chuyên Hùng Vương Phú Thọ'}. Bảo mật dữ liệu đa trường học.
       </footer>
 
       {/* ==================== MODAL KHỞI TẠO TRƯỜNG MỚI ==================== */}
