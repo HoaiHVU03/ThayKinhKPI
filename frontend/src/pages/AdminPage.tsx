@@ -277,15 +277,27 @@ export const AdminPage: React.FC = () => {
         },
       }));
 
-      // Cập nhật trạng thái key trong state nếu kiểm tra thành công
-      setChatbotSettings((prev) => {
-        const newKeys = [...prev.keys];
-        const idx = newKeys.findIndex((k) => k.id === id);
-        if (idx !== -1 && (newKeys[idx].status === 'error' || newKeys[idx].status === 'empty')) {
-          newKeys[idx].status = 'ready';
+      // Cập nhật trạng thái key trong state và tự động lưu vào CSDL
+      const updatedKeys = chatbotSettings.keys.map((k) => {
+        if (k.id === id) {
+          return { ...k, key: keyVal.trim(), status: 'ready' as const };
         }
-        return { ...prev, keys: newKeys };
+        return k;
       });
+
+      setChatbotSettings((prev) => ({ ...prev, keys: updatedKeys }));
+
+      // Tự động lưu ngay lập tức vào database để key có hiệu lực mà không cần bấm thêm nút Lưu
+      try {
+        await api.post('/chatbot/settings', {
+          keys: updatedKeys,
+          active_model: chatbotSettings.active_model,
+          active_key_index: chatbotSettings.active_key_index,
+          system_prompt: chatbotSettings.system_prompt,
+        });
+      } catch (autoSaveErr) {
+        console.error('Lỗi tự động lưu key vào CSDL:', autoSaveErr);
+      }
     } catch (err: any) {
       setTestResults((prev) => ({
         ...prev,
@@ -1794,6 +1806,26 @@ export const AdminPage: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Quick save button for Section 2 */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[11px] text-slate-500">
+                💡 Khi bấm <strong>"Kiểm tra"</strong> thành công, hệ thống sẽ tự động lưu key vào CSDL. Bạn cũng có thể bấm nút bên cạnh để chủ động lưu lại toàn bộ 10 key.
+              </p>
+              <button
+                type="button"
+                onClick={handleSaveChatbotSettings}
+                disabled={chatbotSaving}
+                className="w-full sm:w-auto px-4 py-2 bg-[#0e3a7c] hover:bg-[#0c2f66] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {chatbotSaving ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Lưu danh sách 10 Key vào CSDL
+              </button>
             </div>
           </div>
 

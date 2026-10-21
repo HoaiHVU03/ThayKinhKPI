@@ -326,23 +326,104 @@ PROMPT;
         return true;
     }
 
+    // Helper to query classes matching query text (e.g. "lớp Toán", "khối 10", "11 Tin", etc.)
+    private function queryClassesFromDb(PDO $db, string $msg): array {
+        $m = mb_strtolower($msg, 'UTF-8');
+        
+        $subjects = [
+            'toán' => '%toán%',
+            'toan' => '%toán%',
+            'tin' => '%tin%',
+            'lý' => '%lý%',
+            'ly' => '%lý%',
+            'vật lý' => '%lý%',
+            'hóa' => '%hóa%',
+            'hoa' => '%hóa%',
+            'hóa học' => '%hóa%',
+            'sinh' => '%sinh%',
+            'sinh học' => '%sinh%',
+            'văn' => '%văn%',
+            'van' => '%văn%',
+            'ngữ văn' => '%văn%',
+            'sử' => '%sử%',
+            'su' => '%sử%',
+            'lịch sử' => '%sử%',
+            'địa' => '%địa%',
+            'dia' => '%địa%',
+            'địa lý' => '%địa%',
+            'anh' => '%anh%',
+            'tiếng anh' => '%anh%',
+            'pháp' => '%pháp%',
+            'phap' => '%pháp%',
+            'nga' => '%nga%',
+            'trung' => '%trung%'
+        ];
+
+        $matchedSubject = null;
+        foreach ($subjects as $k => $pattern) {
+            if (str_contains($m, $k)) {
+                $matchedSubject = $pattern;
+                break;
+            }
+        }
+
+        $matchedGrade = null;
+        if (preg_match('/khối\s*(10|11|12)/ui', $m, $gMatches)) {
+            $matchedGrade = (int)$gMatches[1];
+        } elseif (preg_match('/\b(10|11|12)\b/u', $m, $gMatches) && (str_contains($m, 'lớp') || str_contains($m, 'khối'))) {
+            $matchedGrade = (int)$gMatches[1];
+        }
+
+        $where = ['1=1'];
+        $params = [];
+
+        if ($matchedSubject !== null) {
+            $where[] = "(c.name LIKE ? OR c.code LIKE ?)";
+            $params[] = $matchedSubject;
+            $params[] = $matchedSubject;
+        }
+
+        if ($matchedGrade !== null) {
+            $where[] = "c.grade_level = ?";
+            $params[] = $matchedGrade;
+        }
+
+        $sql = "
+            SELECT c.id, c.code, c.name, c.grade_level, c.total_students, c.boarding_students, c.room_location,
+                   t.full_name AS teacher_name, t.phone AS teacher_phone
+            FROM classes c
+            LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY c.grade_level ASC, c.name ASC
+            LIMIT 30
+        ";
+
+        try {
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     // Live Dynamic Database Context Retrieval
     private function retrieveRelevantContext(PDO $db, string $userMessage): string {
         $msg = mb_strtolower($userMessage, 'UTF-8');
         $context = [];
 
         try {
-            // 1. Detect Room inquiries (e.g. "phòng 201", "p305", "phòng 402", "phòng nam", "phòng nữ")
+            // 1. Detect Room inquiries
             if (preg_match('/(?:phòng|p\.?)\s*([0-9]{3})/ui', $msg, $matches) || preg_match('/\b([2-6][0-2][0-9])\b/u', $msg, $matches)) {
                 $roomNum = $matches[1];
                 $stmt = $db->prepare("
-                    SELECT r.room_number, r.floor, r.capacity, r.current_occupancy, r.gender_type, r.status,
+                    SELECT dr.code as room_number, dr.floor_number as floor, dr.capacity, dr.current_occupancy, dr.gender, dr.status,
                            GROUP_CONCAT(CONCAT(s.full_name, ' (', COALESCE(c.name, 'Chưa rõ lớp'), ')') ORDER BY s.full_name SEPARATOR ', ') as students
-                    FROM dormitory_rooms r
-                    LEFT JOIN students s ON s.room_id = r.id
+                    FROM dormitory_rooms dr
+                    LEFT JOIN students s ON s.dorm_room_id = dr.id
                     LEFT JOIN classes c ON s.class_id = c.id
-                    WHERE r.room_number LIKE ?
-                    GROUP BY r.id
+                    WHERE dr.code LIKE ?
+                    GROUP BY dr.id
                     LIMIT 3
                 ");
                 $stmt->execute(["%$roomNum%"]);
@@ -350,24 +431,26 @@ PROMPT;
                 if (!empty($rooms)) {
                     $context[] = "[TRA CỨU TRỰC TIẾP DỮ LIỆU THỜI GIAN THỰC - PHÒNG KTX]:";
                     foreach ($rooms as $r) {
-                        $gender = $r['gender_type'] === 'male' ? 'Nam' : 'Nữ';
+                        $gender = $r['gender'] === 'female' ? 'Nữ sinh' : 'Nam sinh';
                         $studList = !empty($r['students']) ? $r['students'] : 'Chưa có học sinh ở';
-                        $context[] = "- Phòng {$r['room_number']} (Tầng {$r['floor']}, Dành cho {$gender}): Sức chứa {$r['capacity']} em, hiện có {$r['current_occupancy']} em. Danh sách học sinh: {$studList}.";
+                        $context[] = "- Phòng {$r['room_number']} (Tầng {$r['floor']}, Khu {$gender}): Sức chứa {$r['capacity']} em, hiện có {$r['current_occupancy']} em. Danh sách học sinh: {$studList}.";
                     }
                 }
             }
 
-            // 2. Detect Student inquiries (by name or code or "tìm học sinh")
+            // 2. Detect Student inquiries
             if (str_contains($msg, 'học sinh') || str_contains($msg, 'em') || str_contains($msg, 'bạn') || str_contains($msg, 'tìm')) {
                 $cleaned = trim(preg_replace('/(tìm|học sinh|em|bạn|thông tin|hồ sơ|điểm kpi của|lớp|cho tôi biết về|ai là)/ui', '', $msg));
                 if (mb_strlen($cleaned, 'UTF-8') >= 2) {
                     $stmt = $db->prepare("
-                        SELECT s.full_name, s.student_code, s.gender, s.is_boarding, s.kpi_points,
-                               c.name as class_name, r.room_number
+                        SELECT s.full_name, s.code, s.gender, s.is_boarding,
+                               c.name as class_name, dr.code as room_number,
+                               ROUND(COALESCE(sks.final_score, 100.0), 1) as kpi_points
                         FROM students s
                         LEFT JOIN classes c ON s.class_id = c.id
-                        LEFT JOIN dormitory_rooms r ON s.room_id = r.id
-                        WHERE s.full_name LIKE ? OR s.student_code LIKE ?
+                        LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
+                        LEFT JOIN student_kpi_summaries sks ON s.id = sks.student_id
+                        WHERE s.full_name LIKE ? OR s.code LIKE ?
                         LIMIT 5
                     ");
                     $stmt->execute(["%$cleaned%", "%$cleaned%"]);
@@ -377,31 +460,20 @@ PROMPT;
                         foreach ($students as $s) {
                             $type = $s['is_boarding'] ? 'Nội trú KTX' : 'Ngoại trú';
                             $room = !empty($s['room_number']) ? "Phòng {$s['room_number']}" : 'Chưa xếp phòng';
-                            $context[] = "- Học sinh: {$s['full_name']} (Mã HS: {$s['student_code']}), Lớp: {$s['class_name']}, Diện: {$type} ({$room}), Điểm KPI rèn luyện: {$s['kpi_points']} điểm.";
+                            $context[] = "- Học sinh: {$s['full_name']} (Mã HS: {$s['code']}), Lớp: {$s['class_name']}, Diện: {$type} ({$room}), Điểm KPI rèn luyện: {$s['kpi_points']} điểm.";
                         }
                     }
                 }
             }
 
-            // 3. Detect Class inquiries
-            if (preg_match('/lớp\s*([0-9]{1,2}\s*[a-zA-Z0-9\x{00C0}-\x{024F}\x{1E00}-\x{1EFF}]+)/ui', $msg, $cMatches)) {
-                $className = trim($cMatches[1]);
-                $stmt = $db->prepare("
-                    SELECT c.name, c.grade, c.specialized_subject, c.homeroom_teacher_name,
-                           COUNT(s.id) as total_students,
-                           SUM(CASE WHEN s.is_boarding = 1 THEN 1 ELSE 0 END) as boarding_count
-                    FROM classes c
-                    LEFT JOIN students s ON s.class_id = c.id
-                    WHERE c.name LIKE ?
-                    GROUP BY c.id
-                    LIMIT 3
-                ");
-                $stmt->execute(["%$className%"]);
-                $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // 3. Detect Class inquiries (e.g. "có những lớp Toán nào", "lớp 10 Toán 1", "khối 11")
+            if (str_contains($msg, 'lớp') || str_contains($msg, 'toán') || str_contains($msg, 'tin') || str_contains($msg, 'lý') || str_contains($msg, 'hóa') || str_contains($msg, 'văn') || str_contains($msg, 'anh') || str_contains($msg, 'gvcn') || str_contains($msg, 'chủ nhiệm')) {
+                $classes = $this->queryClassesFromDb($db, $msg);
                 if (!empty($classes)) {
                     $context[] = "[TRA CỨU TRỰC TIẾP DỮ LIỆU THỜI GIAN THỰC - THÔNG TIN LỚP HỌC]:";
                     foreach ($classes as $c) {
-                        $context[] = "- Lớp {$c['name']} (Khối {$c['grade']}): GVCN: " . ($c['homeroom_teacher_name'] ?: 'Chưa cập nhật') . ", Sĩ số: {$c['total_students']} học sinh ({$c['boarding_count']} học sinh nội trú KTX).";
+                        $gvcn = !empty($c['teacher_name']) ? "GVCN: {$c['teacher_name']}" . (!empty($c['teacher_phone']) ? " (SĐT: {$c['teacher_phone']})" : "") : "GVCN: Chưa cập nhật";
+                        $context[] = "- Lớp {$c['name']} (Khối {$c['grade_level']}): {$gvcn}, Sĩ số: {$c['total_students']} học sinh ({$c['boarding_students']} học sinh nội trú KTX).";
                     }
                 }
             }
@@ -482,10 +554,10 @@ PROMPT;
 
         // If no keys configured at all, fallback to comprehensive local rule-based AI engine
         if (empty($validKeyIndices)) {
-            $localReply = $this->generateSmartLocalReply($userMessage, $liveStats);
+            $localReply = $this->generateSmartLocalReply($userMessage, $liveStats, $db);
             Response::success([
-                'reply' => $localReply,
-                'model_used' => $configuredModel . ' (AI Tri Thức Cục Bộ - Chưa cài Gemini API Key)',
+                'reply' => $localReply . "\n\n> 💡 *Ghi chú: Quản trị viên chưa cấu hình API Key cho Google Gemini (vào mục Quản Trị > Cấu hình AI Gemini Chatbot để kích hoạt 10 key). Hiện tại câu trả lời đang được trích xuất trực tiếp từ Cơ sở dữ liệu nhà trường.*",
+                'model_used' => 'Tra cứu CSDL nội bộ (Chưa kích hoạt Gemini API)',
                 'key_index' => null,
                 'total_keys_available' => 0,
                 'notice' => 'Chưa cấu hình API Key. Quản trị viên có thể vào Quản Trị > Cấu hình AI Gemini Chatbot để nhập 10 key dùng dần.'
@@ -592,9 +664,9 @@ PROMPT;
 
         // All keys in the pool failed or hit rate limits -> graceful fallback to local knowledge engine
         $this->persistActiveKeyAndStats($db, $keysList, $activeKeyIdx);
-        $localReply = $this->generateSmartLocalReply($userMessage, $liveStats);
+        $localReply = $this->generateSmartLocalReply($userMessage, $liveStats, $db);
         Response::success([
-            'reply' => $localReply . "\n\n> *Lưu ý: Tất cả các API Key của Gemini hiện đang quá tải hoặc gặp lỗi kết nối ($lastError). Hệ thống đang kích hoạt chế độ Tri thức Chuyên Hùng Vương dự phòng.*",
+            'reply' => $localReply,
             'model_used' => $configuredModel . ' (Dự phòng cục bộ)',
             'key_index' => null,
             'total_keys_available' => $totalValid,
@@ -959,14 +1031,153 @@ PROMPT;
 
     /**
      * Intelligent local fallback knowledge engine when Gemini keys are empty or rate-limited
+     * Fully queries live MySQL database for classes, students, rooms, teachers, schedules, and KPI rules
      */
-    private function generateSmartLocalReply(string $msg, array $stats): string {
+    private function generateSmartLocalReply(string $msg, array $stats, ?PDO $db = null): string {
+        if ($db === null) {
+            $db = Database::getConnection();
+        }
         $m = mb_strtolower($msg, 'UTF-8');
 
+        // Guardrail out-of-scope check
         if ($this->isOutOfScopeQuery($msg)) {
             return self::OUT_OF_SCOPE_MESSAGE;
         }
 
+        // 1. DYNAMIC INQUIRY: Specific Class & Subject Search (e.g. "có những lớp Toán nào", "lớp 10 Tin", "danh sách lớp")
+        $isClassQuery = str_contains($m, 'lớp') || str_contains($m, 'khối') || str_contains($m, 'chuyên') ||
+                        str_contains($m, 'chủ nhiệm') || str_contains($m, 'gvcn') ||
+                        preg_match('/\b(toán|tin|lý|hóa|sinh|văn|sử|địa|anh|pháp|nga|trung)\b/ui', $m);
+
+        if ($isClassQuery) {
+            $classes = $this->queryClassesFromDb($db, $msg);
+            if (!empty($classes)) {
+                $subjectLabel = "DANH SÁCH LỚP HỌC";
+                if (str_contains($m, 'toán') || str_contains($m, 'toan')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN TOÁN";
+                elseif (str_contains($m, 'tin')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN TIN";
+                elseif (str_contains($m, 'lý') || str_contains($m, 'ly')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN VẬT LÝ";
+                elseif (str_contains($m, 'hóa') || str_contains($m, 'hoa')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN HÓA HỌC";
+                elseif (str_contains($m, 'sinh')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN SINH HỌC";
+                elseif (str_contains($m, 'văn') || str_contains($m, 'van')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN NGỮ VĂN";
+                elseif (str_contains($m, 'sử') || str_contains($m, 'su')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN LỊCH SỬ";
+                elseif (str_contains($m, 'địa') || str_contains($m, 'dia')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN ĐỊA LÝ";
+                elseif (str_contains($m, 'anh')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN TIẾNG ANH";
+                elseif (str_contains($m, 'pháp') || str_contains($m, 'phap')) $subjectLabel = "DANH SÁCH CÁC LỚP CHUYÊN TIẾNG PHÁP";
+
+                $totalCls = count($classes);
+                $sumStudents = array_sum(array_column($classes, 'total_students'));
+                $sumBoarding = array_sum(array_column($classes, 'boarding_students'));
+
+                $res = "📚 **{$subjectLabel} (TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG):**\n\n";
+                $res .= "Hệ thống ghi nhận **{$totalCls} lớp** với tổng cộng **{$sumStudents} học sinh** ({$sumBoarding} học sinh nội trú KTX):\n\n";
+
+                foreach ($classes as $c) {
+                    $teacherInfo = !empty($c['teacher_name']) ? "GVCN: **{$c['teacher_name']}**" . (!empty($c['teacher_phone']) ? " (SĐT: `{$c['teacher_phone']}`)" : "") : "GVCN: *Chưa cập nhật*";
+                    $location = !empty($c['room_location']) ? " | Vị trí: {$c['room_location']}" : "";
+                    $res .= "• **{$c['name']}** (Mã: `{$c['code']}` - Khối {$c['grade_level']}): Sĩ số **{$c['total_students']}** em ({$c['boarding_students']} KTX) | {$teacherInfo}{$location}\n";
+                }
+                return $res;
+            } elseif (str_contains($m, 'bao nhiêu lớp') || str_contains($m, 'các khối') || str_contains($m, 'tất cả lớp')) {
+                return "🏫 **CƠ CẤU 54 LỚP CHUYÊN TẠI THPT CHUYÊN HÙNG VƯƠNG:**\n\n" .
+                    "Toàn trường có **54 lớp chuyên** trải đều qua 3 khối lớp với tổng số **" . ($stats['total_students'] ?? 1883) . " học sinh**:\n\n" .
+                    "- **Khối 10 (18 lớp):** 10 Chuyên Toán 1-2, 10 Tin, 10 Lý 1-2, 10 Hóa 1-2, 10 Sinh, 10 Văn 1-2, 10 Sử, 10 Địa, 10 Anh 1-2, 10 Pháp, 10 Nga, 10 Trung.\n" .
+                    "- **Khối 11 (17 lớp):** 11 Chuyên Toán 1-2, 11 Tin, 11 Lý 1-2, 11 Hóa 1-2, 11 Sinh, 11 Văn 1-2, 11 Sử, 11 Địa, 11 Anh 1-2, 11 Pháp, 11 Nga, 11 Trung.\n" .
+                    "- **Khối 12 (19 lớp):** 12 Chuyên Toán 1-2, 12 Tin 1-2, 12 Lý 1-2, 12 Hóa 1-2, 12 Sinh 1-2, 12 Văn 1-2, 12 Sử, 12 Địa, 12 Anh 1-3, 12 Pháp, 12 Nga, 12 Trung.\n\n" .
+                    "👉 *Bạn có thể tra cứu nhanh theo môn chuyên, ví dụ: \"có những lớp Toán nào\", \"thông tin lớp 11 Lý 1\", \"danh sách lớp Anh\"...*";
+            }
+        }
+
+        // 2. DYNAMIC INQUIRY: Specific Dorm Room Search (e.g. "phòng 201", "P305", "402")
+        if (preg_match('/(?:phòng|p\.?)\s*([0-9]{3})/ui', $m, $matches) || preg_match('/\b([2-6][0-2][0-9])\b/u', $m, $matches)) {
+            $roomNum = $matches[1];
+            try {
+                $stmt = $db->prepare("
+                    SELECT dr.code as room_number, dr.floor_number as floor, dr.capacity, dr.current_occupancy, dr.gender, dr.status,
+                           GROUP_CONCAT(CONCAT(s.full_name, ' (', COALESCE(c.name, 'Chưa rõ lớp'), ')') ORDER BY s.full_name SEPARATOR ', ') as students
+                    FROM dormitory_rooms dr
+                    LEFT JOIN students s ON s.dorm_room_id = dr.id
+                    LEFT JOIN classes c ON s.class_id = c.id
+                    WHERE dr.code LIKE ?
+                    GROUP BY dr.id
+                    LIMIT 3
+                ");
+                $stmt->execute(["%$roomNum%"]);
+                $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($rooms)) {
+                    $res = "🏨 **THÔNG TIN TRA CỨU PHÒNG KÝ TÚC XÁ:**\n\n";
+                    foreach ($rooms as $r) {
+                        $gender = $r['gender'] === 'female' ? 'Nữ sinh' : 'Nam sinh';
+                        $studList = !empty($r['students']) ? $r['students'] : 'Hiện chưa có học sinh ở phòng này.';
+                        $res .= "• **Phòng {$r['room_number']}** (Tầng {$r['floor']}, Khu dành cho {$gender}):\n" .
+                            "  - Trạng thái: " . ($r['status'] === 'active' ? 'Đang hoạt động' : $r['status']) . "\n" .
+                            "  - Quân số hiện tại: **{$r['current_occupancy']}/{$r['capacity']} em**\n" .
+                            "  - Danh sách học sinh: {$studList}\n\n";
+                    }
+                    return trim($res);
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        // 3. DYNAMIC INQUIRY: Student Lookup (e.g. "học sinh Nguyễn Văn A", "HS1001", "tìm bạn...")
+        if (str_contains($m, 'học sinh') || str_contains($m, 'em') || str_contains($m, 'bạn') || str_contains($m, 'tìm') || str_contains($m, 'tra cứu') || preg_match('/hs[0-9]+/ui', $m)) {
+            $cleaned = trim(preg_replace('/(tìm|học sinh|em|bạn|thông tin|hồ sơ|điểm kpi của|lớp|cho tôi biết về|ai là|tra cứu|ở phòng nào)/ui', '', $m));
+            if (mb_strlen($cleaned, 'UTF-8') >= 2) {
+                try {
+                    $stmt = $db->prepare("
+                        SELECT s.full_name, s.code, s.gender, s.is_boarding, s.phone, s.parent_name, s.parent_phone,
+                               c.name as class_name, dr.code as room_number,
+                               ROUND(COALESCE(sks.final_score, 100.0), 1) as kpi_points
+                        FROM students s
+                        LEFT JOIN classes c ON s.class_id = c.id
+                        LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
+                        LEFT JOIN student_kpi_summaries sks ON s.id = sks.student_id
+                        WHERE s.full_name LIKE ? OR s.code LIKE ?
+                        LIMIT 5
+                    ");
+                    $stmt->execute(["%$cleaned%", "%$cleaned%"]);
+                    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    if (!empty($students)) {
+                        $res = "👤 **KẾT QUẢ TRA CỨU HỒ SƠ HỌC SINH:**\n\n";
+                        foreach ($students as $s) {
+                            $type = $s['is_boarding'] ? "Nội trú KTX (Phòng " . ($s['room_number'] ?: 'chưa xếp') . ")" : "Ngoại trú";
+                            $res .= "• **{$s['full_name']}** (Mã: `{$s['code']}`):\n" .
+                                "  - Lớp: **{$s['class_name']}**\n" .
+                                "  - Diện lưu trú: {$type}\n" .
+                                "  - Điểm rèn luyện KPI: **{$s['kpi_points']} điểm**\n";
+                            if (!empty($s['phone'])) $res .= "  - SĐT học sinh: `{$s['phone']}`\n";
+                            if (!empty($s['parent_name'])) $res .= "  - Phụ huynh: {$s['parent_name']}" . (!empty($s['parent_phone']) ? " (`{$s['parent_phone']}`)" : "") . "\n";
+                            $res .= "\n";
+                        }
+                        return trim($res);
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+
+        // 4. DYNAMIC INQUIRY: Absences & Leaves (e.g. "ai vắng hôm nay", "đơn xin phép")
+        if (str_contains($m, 'vắng') || str_contains($m, 'ai vắng') || str_contains($m, 'nghỉ') || str_contains($m, 'xin phép')) {
+            try {
+                $stmt = $db->query("
+                    SELECT lr.student_name, lr.class_name, lr.room_code, lr.request_type, lr.reason, lr.start_time, lr.expected_end_time, lr.status
+                    FROM leave_requests lr
+                    WHERE lr.status IN ('pending', 'approved')
+                    ORDER BY lr.id DESC
+                    LIMIT 6
+                ");
+                $leaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($leaves)) {
+                    $res = "📝 **DANH SÁCH ĐƠN XIN NGHỈ / VẮNG MẶT KTX GẦN ĐÂY:**\n\n";
+                    foreach ($leaves as $l) {
+                        $stt = $l['status'] === 'approved' ? '✅ Đã duyệt' : '⏳ Chờ duyệt';
+                        $res .= "• **{$l['student_name']}** (Lớp {$l['class_name']}, P.{$l['room_code']}): Lý do *\"{$l['reason']}\"* [{$stt}] | Thời gian: {$l['start_time']} - {$l['expected_end_time']}\n";
+                    }
+                    $res .= "\n💡 *Để tạo đơn xin phép mới, học sinh/phụ huynh truy cập mục \"Đơn xin phép KTX\" trên thanh điều hướng.*";
+                    return $res;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        // 5. General Dormitory Architecture & Floor Plan
         if (str_contains($m, 'phòng') || str_contains($m, 'ktx') || str_contains($m, 'ký túc xá') || str_contains($m, 'bao nhiêu phòng') || str_contains($m, 'sơ đồ')) {
             return "🏨 **THÔNG TIN KÝ TÚC XÁ THPT CHUYÊN HÙNG VƯƠNG:**\n\n" .
                 "- **Quy mô:** Gồm **120 phòng ở** phân bổ từ Tầng 2 đến Tầng 6 với sức chứa tiêu chuẩn 6-8 học sinh/phòng.\n" .
@@ -976,9 +1187,11 @@ PROMPT;
                 "  + **Tầng 4 (Phòng 401 - 424):** Khu liên tầng Nam & Nữ (có vách ngăn và lối đi riêng biệt).\n" .
                 "  + **Tầng 5 & Tầng 6 (Phòng 501 - 624):** Khu KTX dành cho **Nữ sinh**.\n" .
                 "- **Phân loại hiện tại:** Có **" . ($stats['total_boarding'] ?? 702) . " học sinh Nội trú** đang lưu trú và **" . ($stats['total_day'] ?? 1181) . " học sinh Ngoại trú/Bán trú**.\n" .
-                "- **Trách nhiệm phòng:** Mỗi phòng có một **Trưởng phòng** chịu trách nhiệm điểm danh nội bộ lúc 22:00 và vệ sinh nội vụ.";
+                "- **Trách nhiệm phòng:** Mỗi phòng có một **Trưởng phòng** chịu trách nhiệm điểm danh nội bộ lúc 22:00 và vệ sinh nội vụ.\n\n" .
+                "👉 *Bạn có thể tra cứu cụ thể số phòng bất kỳ (ví dụ: \"phòng 201\", \"phòng 405\").*";
         }
 
+        // 6. Discipline & KPI Grading Rules (L01 -> L10)
         if (str_contains($m, 'vi phạm') || str_contains($m, 'kpi') || str_contains($m, 'kỷ luật') || str_contains($m, 'lỗi') || str_contains($m, 'điểm')) {
             return "⚖️ **QUY ĐỊNH 10 LỖI VI PHẠM KPI NỀN NẾP (L01 -> L10):**\n\n" .
                 "Học sinh bắt đầu mỗi học kỳ với **100 điểm KPI chuẩn**. Các lỗi vi phạm sẽ bị trừ điểm theo thang chuẩn hóa:\n\n" .
@@ -995,32 +1208,23 @@ PROMPT;
                 "📌 *Xếp loại rèn luyện:* Xuất sắc (≥95đ), Tốt (85-94đ), Khá (70-84đ), Trung bình (50-69đ), Yếu (<50đ).";
         }
 
+        // 7. Daily 11 Regimes
         if (str_contains($m, 'chế độ') || str_contains($m, 'giờ') || str_contains($m, 'thời gian') || str_contains($m, 'sinh hoạt') || str_contains($m, 'lịch')) {
             return "⏰ **KHUNG GIỜ 11 CHẾ ĐỘ SINH HOẠT HÀNG NGÀY TẠI KTX:**\n\n" .
-                "• **05:30:** Báo thức buổi sáng toàn KTX.\n" .
-                "• **05:45 - 06:15:** Thể dục sáng & Vệ sinh nội vụ phòng ở.\n" .
-                "• **06:00:** Điểm danh buổi sáng.\n" .
-                "• **06:15 - 06:45:** Ăn sáng tại nhà ăn trường.\n" .
-                "• **07:00 - 11:30:** Học chính khóa ca sáng trên lớp.\n" .
-                "• **11:45 - 13:30:** Ăn trưa và ngủ trưa tại KTX.\n" .
-                "• **14:00 - 17:00:** Học ca chiều / bồi dưỡng HSG / tự học.\n" .
-                "• **17:00 - 18:30:** Thể thao, rèn luyện thể lực, tắm giặt.\n" .
-                "• **18:30 - 19:30:** Ăn tối tại nhà ăn.\n" .
-                "• **19:30 - 21:30:** Tự học tối tại phòng KTX (nghiêm túc).\n" .
-                "• **22:00:** Điểm danh tối toàn bộ 120 phòng KTX.\n" .
-                "• **22:15:** Báo cáo Zalo tổng hợp gửi BGH.\n" .
-                "• **22:30:** Tắt đèn đi ngủ, bảo vệ khóa cửa KTX.";
+                "• **05:15 - 05:30:** Báo thức sáng toàn KTX.\n" .
+                "• **05:30 - 06:00:** Thể dục sáng nâng cao thể lực.\n" .
+                "• **06:00 - 06:30:** Gấp chăn màn, chỉnh trang nội vụ phòng ở.\n" .
+                "• **06:30 - 07:15:** Ăn sáng tại nhà ăn trường THPT Chuyên Hùng Vương.\n" .
+                "• **07:15 - 07:30:** Niêm phong KTX, bảo vệ khóa cửa tầng.\n" .
+                "• **07:30 - 11:30:** Học chính khóa ca sáng tại Tòa nhà A.\n" .
+                "• **11:45 - 13:30:** Ăn trưa và nghỉ trưa tại phòng KTX.\n" .
+                "• **16:30 - 17:45:** Thể thao chiều (bóng rổ, cầu lông, bóng bàn).\n" .
+                "• **18:00 - 18:15:** Chốt cổng trường KTX, kiểm soát học sinh nội trú trở về.\n" .
+                "• **19:30 - 21:45:** Tự học tối nghiêm túc tại phòng KTX.\n" .
+                "• **22:00 - 22:30:** Điểm danh tối 120 phòng & Tắt đèn đi ngủ lúc 22:30.";
         }
 
-        if (str_contains($m, 'đơn') || str_contains($m, 'phép') || str_contains($m, 'nghỉ') || str_contains($m, 'vắng') || str_contains($m, 'về quê')) {
-            return "📝 **HƯỚNG DẪN LÀM ĐƠN XIN PHÉP VẮNG MẶT KTX:**\n\n" .
-                "1. **Tạo đơn trực tuyến:** Vào mục **\"Đơn xin phép KTX\"** trên thanh điều hướng, nhấn nút **\"Tạo đơn mới\"**.\n" .
-                "2. **Điền thông tin:** Chọn học sinh, lý do (về quê, ốm đau, thi HSG...), thời gian bắt đầu vắng và dự kiến trở lại KTX.\n" .
-                "3. **Phê duyệt:** Giáo viên chủ nhiệm (GVCN) hoặc Quản sinh KTX sẽ kiểm tra và bấm **\"Phê duyệt\"**.\n" .
-                "4. **Check-in khi về KTX:** Khi học sinh trở lại trường, Trưởng phòng hoặc Quản sinh bấm **\"Xác nhận Check-in\"** để đóng đơn.\n" .
-                "⚠️ *Cảnh báo:* Nếu quá giờ hẹn trở lại mà chưa thực hiện Check-in, hệ thống sẽ tự động gắn nhãn đỏ **\"CẢNH BÁO QUÁ HẠN\"** và thông báo đến Ban Quản lý!";
-        }
-
+        // 8. Attendance & Zalo procedures
         if (str_contains($m, 'điểm danh') || str_contains($m, 'zalo') || str_contains($m, 'báo cáo')) {
             return "📋 **QUY TRÌNH ĐIỂM DANH KTX & XUẤT BÁO CÁO ZALO 22:15:**\n\n" .
                 "- **Thời điểm thực hiện:** Đúng **22:00 hàng đêm**, Trưởng phòng và Quản sinh tiến hành điểm danh tại từng phòng.\n" .
@@ -1029,6 +1233,7 @@ PROMPT;
                 "- **Xuất báo cáo Zalo:** Đúng **22:15**, hệ thống chuẩn bị sẵn mẫu tin nhắn Zalo chuẩn thể thức theo từng tầng hoặc toàn trường để Quản sinh sao chép và gửi vào nhóm BGH & Đoàn trường.";
         }
 
+        // 9. Decree 30 A4 Print
         if (str_contains($m, 'in') || str_contains($m, 'a4') || str_contains($m, 'nghị định 30') || str_contains($m, 'văn bản')) {
             return "🖨️ **TÍNH NĂNG XUẤT VĂN BẢN MẪU IN A4 (NGHỊ ĐỊNH 30/2020/NĐ-CP):**\n\n" .
                 "Hệ thống cung cấp module **\"Mẫu In A4 Chuẩn NĐ 30/2020\"** với đầy đủ các thành phần thể thức văn bản hành chính Việt Nam:\n\n" .
@@ -1039,17 +1244,18 @@ PROMPT;
                 "• Hỗ trợ xem trước và in ấn trực tiếp hoặc xuất file PDF một chạm.";
         }
 
+        // 10. Default General Welcome (when user says hello or general inquiries)
         return "Chào bạn! Tôi là **Trợ lý AI Hùng Vương** - Cố vấn thông minh Hệ thống Quản lý Ký túc xá & KPI Nền nếp Trường THPT Chuyên Hùng Vương.\n\n" .
             "Hiện tại hệ thống đang quản lý:\n" .
             "- **" . ($stats['total_students'] ?? 1883) . " học sinh** thuộc **54 lớp chuyên** (" . ($stats['total_boarding'] ?? 702) . " nội trú KTX, " . ($stats['total_day'] ?? 1181) . " ngoại trú).\n" .
             "- **120 phòng KTX** trải rộng trên 6 tầng.\n" .
             "- Điểm danh trực tiếp ca 06:00 và 22:00, xuất báo cáo Zalo 22:15.\n\n" .
-            "Bạn có thể hỏi tôi về:\n" .
-            "1. Sơ đồ 120 phòng và phân loại nội trú/ngoại trú KTX.\n" .
-            "2. Thang 10 lỗi vi phạm kỷ luật L01 -> L10 và hệ thống tính điểm KPI.\n" .
-            "3. Lịch trình 11 chế độ sinh hoạt trong ngày.\n" .
-            "4. Quy trình làm đơn xin phép vắng mặt và cảnh báo quá hạn.\n" .
-            "5. Cách xuất báo cáo Zalo và mẫu in A4 theo Nghị định 30/2020.\n\n" .
-            "Bạn cần tìm hiểu hoặc hỗ trợ nội dung nào?";
+            "Bạn có thể hỏi tôi trực tiếp về:\n" .
+            "1. **Danh sách lớp học:** *\"Có những lớp Toán nào?\"*, *\"Danh sách lớp Tin\"*, *\"Lớp 11 Lý 1\"*...\n" .
+            "2. **Tra cứu học sinh / phòng ở:** *\"Tìm bạn Nguyễn Văn A\"*, *\"Phòng 201 có những ai?\"*...\n" .
+            "3. **Tình hình vắng mặt:** *\"Hôm nay ai có đơn xin nghỉ?\"*, *\"Quy trình làm đơn vắng mặt\"*...\n" .
+            "4. **Kỷ luật & KPI:** *\"Thang 10 lỗi vi phạm kỷ luật L01 -> L10\"*, *\"Cách tính điểm KPI\"*...\n" .
+            "5. **Thời gian biểu:** *\"11 chế độ sinh hoạt trong ngày của KTX\"*...\n\n" .
+            "Bạn muốn tôi tra cứu thông tin gì?";
     }
 }
