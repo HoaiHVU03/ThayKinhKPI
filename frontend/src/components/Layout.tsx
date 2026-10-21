@@ -175,10 +175,11 @@ export const Layout: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-        <div className="flex items-center justify-between px-4 lg:px-6 py-2.5">
+      {/* Top Header */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs h-14 sm:h-16 flex items-center px-3 sm:px-4 lg:px-6 overflow-hidden shrink-0">
+        <div className="flex items-center justify-between w-full h-full gap-2 sm:gap-4 min-w-0">
           {/* Left Brand Identity */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 -ml-1 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none touch-action-manipulation shrink-0"
@@ -196,70 +197,70 @@ export const Layout: React.FC = () => {
                 className="shrink-0 drop-shadow-xs"
               />
               <div className="text-left leading-tight min-w-0">
-                <h1 className="text-xs sm:text-sm font-extrabold tracking-tight text-[#0e3a7c] uppercase truncate max-w-[140px] sm:max-w-none">
+                <h1 className="text-xs sm:text-sm font-extrabold tracking-tight text-[#0e3a7c] uppercase truncate max-w-[150px] sm:max-w-[200px] md:max-w-[260px] xl:max-w-none">
                   {schoolSettings.school_name || 'THPT Chuyên Hùng Vương'}
                 </h1>
-                <p className="text-[10px] sm:text-xs font-medium text-slate-500 truncate hidden xs:block">
+                <p className="text-[10px] sm:text-xs font-medium text-slate-500 truncate hidden md:block">
                   Quản lý KTX & KPI rèn luyện nề nếp
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Center Realtime Running Leave Ticker Bar (Khu vực trung tâm khoanh đỏ) */}
+          {/* Center Realtime Running Leave Ticker Bar (Khu vực trung tâm) */}
           <LeaveTickerBanner />
 
           {/* Right User & Status */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Parallel World / School Indicator */}
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/90 hover:bg-blue-100 text-[#0e3a7c] text-xs font-bold rounded-lg border border-blue-200 cursor-pointer transition-colors shadow-2xs"
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/90 hover:bg-blue-100 text-[#0e3a7c] text-xs font-bold rounded-lg border border-blue-200 cursor-pointer transition-colors shadow-2xs shrink-0"
               title="Không gian trường học độc lập (Thế giới song song) — Nhấn để chọn trường khác"
               onClick={() => {
                 logout();
                 navigate('/login');
               }}
             >
-              <Globe className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-              <span className="hidden sm:inline text-slate-500 font-medium">Trường:</span>
-              <span className="text-[#0e3a7c] font-black max-w-[140px] truncate">
+              <Globe className="w-3.5 h-3.5 text-blue-600 animate-pulse shrink-0" />
+              <span className="text-slate-500 font-medium">Trường:</span>
+              <span className="text-[#0e3a7c] font-black max-w-[120px] truncate">
                 {schoolSettings.school_name?.replace('Trường THPT ', '') || 'Chuyên Hùng Vương'}
               </span>
             </div>
 
-            {/* Realtime Clock Badge */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full border border-slate-200">
+            {/* Realtime Clock Badge (Only on ultra wide 2xl to avoid crowding header) */}
+            <div className="hidden 2xl:flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full border border-slate-200 shrink-0">
               <Clock className="w-3.5 h-3.5 text-[#0e3a7c]" />
               <span>{currentTime} (GMT+7)</span>
             </div>
 
             {/* User Profile Capsule */}
             {user && (
-              <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+              <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 shrink-0">
                 {(user as any).avatar_url ? (
                   <img
                     src={(user as any).avatar_url}
                     alt={user.full_name}
-                    className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs"
+                    className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs shrink-0"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
                     }}
                   />
                 ) : (
-                  <div className={`w-8 h-8 rounded-full ${user.role === 'admin' ? 'bg-red-700' : 'bg-[#0e3a7c]'} text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs`}>
+                  <div className={`w-8 h-8 rounded-full ${user.role === 'admin' ? 'bg-red-700' : 'bg-[#0e3a7c]'} text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs shrink-0`}>
                     {user.full_name?.charAt(0) || 'U'}
                   </div>
                 )}
-                <div className="hidden lg:block text-left">
+                <div className="hidden md:block text-left">
                   <div className="text-xs font-semibold text-slate-900 leading-tight flex items-center gap-1.5">
-                    <span>{user.full_name}</span>
+                    <span className="truncate max-w-[130px] lg:max-w-[180px]">{user.full_name}</span>
                   </div>
                   <div className="text-[11px] font-medium text-slate-500 flex items-center gap-1 mt-0.5">
-                    <span className={`inline-block px-1.5 py-0.2 rounded border text-[10px] font-semibold ${roleLabels[user.role]?.color || 'bg-slate-100 text-slate-700'}`}>
+                    <span className={`hidden lg:inline-block px-1.5 py-0.2 rounded border text-[10px] font-semibold ${roleLabels[user.role]?.color || 'bg-slate-100 text-slate-700'}`}>
                       {roleLabels[user.role]?.label || user.role}
                     </span>
                     {scopeBadgeText && (
-                      <span className="inline-block px-1.5 py-0.2 rounded border text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+                      <span className="hidden 2xl:inline-block px-1.5 py-0.2 rounded border text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200 truncate max-w-[140px]" title={scopeBadgeText}>
                         • {scopeBadgeText}
                       </span>
                     )}
@@ -269,7 +270,7 @@ export const Layout: React.FC = () => {
                 <button
                   onClick={handleLogout}
                   title="Đăng xuất"
-                  className="p-1.5 ml-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 ml-0.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
