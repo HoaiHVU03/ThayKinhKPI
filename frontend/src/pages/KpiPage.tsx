@@ -87,14 +87,27 @@ export const KpiPage: React.FC = () => {
   const [dateFilter, setDateFilter] = useState('');
   const [search, setSearch] = useState('');
 
-  // Create Violation Modal
+  // Create Violation / Bonus Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [recordType, setRecordType] = useState<'violation' | 'bonus'>('violation');
   const [importViolationModalOpen, setImportViolationModalOpen] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
   const [searchedStudents, setSearchedStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSearchingStudent, setIsSearchingStudent] = useState(false);
   const [currentTimeLive, setCurrentTimeLive] = useState('');
+
+  // Helper to determine whether a rule or record is a bonus
+  const isBonusRule = (r?: { code?: string; category?: string; rule_type?: string }) => {
+    if (!r) return false;
+    if (r.rule_type === 'bonus') return true;
+    if (r.rule_type === 'deduction') return false;
+    const cat = (r.category || '').toLowerCase();
+    if (cat.includes('khen') || cat.includes('thuong') || cat.includes('thưởng')) return true;
+    const code = (r.code || '').toUpperCase();
+    if (code.startsWith('C')) return true;
+    return false;
+  };
 
   // Helper to format exact current local date and time
   const getCurrentDateTime = () => {
@@ -180,6 +193,7 @@ export const KpiPage: React.FC = () => {
     category: 'KTX',
     deduction_points: 5,
     description: '',
+    rule_type: 'deduction' as 'deduction' | 'bonus',
   });
 
   const [editRuleModalOpen, setEditRuleModalOpen] = useState(false);
@@ -190,6 +204,7 @@ export const KpiPage: React.FC = () => {
     category: 'KTX',
     deduction_points: 5,
     description: '',
+    rule_type: 'deduction' as 'deduction' | 'bonus',
   });
 
   const fetchRules = async () => {
@@ -283,11 +298,32 @@ export const KpiPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [studentSearch, createModalOpen, selectedStudent]);
 
-  // Handler to open Create Violation Modal with EXACT CURRENT MOMENT (Thời khắc đó)
+  // Handler to open Create Violation Modal
   const handleOpenCreateViolationModal = () => {
     const dt = getCurrentDateTime();
+    setRecordType('violation');
+    const firstViolationRule = rules.find((r) => !isBonusRule(r));
     setFormViolation({
-      rule_id: '',
+      rule_id: firstViolationRule ? String(firstViolationRule.id) : '',
+      location: 'Khuôn viên trường',
+      description: '',
+      violation_date: dt.date,
+      violation_time: dt.time,
+      evidence_url: '',
+    });
+    setSelectedStudent(null);
+    setStudentSearch('');
+    setSearchedStudents([]);
+    setCreateModalOpen(true);
+  };
+
+  // Handler to open Create Bonus Modal (Ghi nhận điểm cộng / Khen thưởng)
+  const handleOpenCreateBonusModal = () => {
+    const dt = getCurrentDateTime();
+    setRecordType('bonus');
+    const firstBonusRule = rules.find((r) => isBonusRule(r));
+    setFormViolation({
+      rule_id: firstBonusRule ? String(firstBonusRule.id) : '',
       location: 'Khuôn viên trường',
       description: '',
       violation_date: dt.date,
@@ -313,7 +349,7 @@ export const KpiPage: React.FC = () => {
   const handleCreateViolationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent || !formViolation.rule_id || !formViolation.description) {
-      alert('Vui lòng chọn học sinh, mã lỗi và nhập mô tả sự việc');
+      alert(recordType === 'bonus' ? 'Vui lòng chọn học sinh, tiêu chí khen thưởng và nhập thành tích' : 'Vui lòng chọn học sinh, mã lỗi và nhập mô tả sự việc');
       return;
     }
 
@@ -327,7 +363,7 @@ export const KpiPage: React.FC = () => {
         violation_time: formViolation.violation_time,
         evidence_url: formViolation.evidence_url,
       });
-      alert('Lập biên bản vi phạm thành công!');
+      alert(recordType === 'bonus' ? 'Ghi nhận điểm cộng khen thưởng thành công!' : 'Lập biên bản vi phạm thành công!');
       setCreateModalOpen(false);
       setSelectedStudent(null);
       const dt = getCurrentDateTime();
@@ -341,15 +377,15 @@ export const KpiPage: React.FC = () => {
       });
       fetchViolations();
     } catch (err: any) {
-      alert(err.message || 'Lỗi lập biên bản');
+      alert(err.message || 'Lỗi ghi nhận');
     }
   };
 
   const handleApprove = async (id: number) => {
-    if (!confirm('Xác nhận phê duyệt biên bản vi phạm này? Điểm KPI học sinh sẽ được tự động tính toán lại.')) return;
+    if (!confirm('Xác nhận phê duyệt bản ghi này? Điểm KPI học sinh sẽ được tự động tính toán lại.')) return;
     try {
       await api.post(`/kpi/violations/${id}/approve`);
-      alert('Đã phê duyệt biên bản thành công');
+      alert('Đã phê duyệt thành công');
       fetchViolations();
     } catch (err: any) {
       alert(err.message || 'Lỗi phê duyệt');
@@ -357,11 +393,11 @@ export const KpiPage: React.FC = () => {
   };
 
   const handleReject = async (id: number) => {
-    const reason = prompt('Nhập lý do từ chối biên bản:');
+    const reason = prompt('Nhập lý do từ chối:');
     if (reason === null) return;
     try {
       await api.post(`/kpi/violations/${id}/reject`, { notes: reason });
-      alert('Đã từ chối biên bản vi phạm');
+      alert('Đã từ chối bản ghi');
       fetchViolations();
     } catch (err: any) {
       alert(err.message || 'Lỗi từ chối');
@@ -389,24 +425,25 @@ export const KpiPage: React.FC = () => {
     if (!editingViolationId) return;
     try {
       await api.put(`/kpi/violations/${editingViolationId}`, editViolationForm);
-      alert('Cập nhật biên bản vi phạm thành công!');
+      alert('Cập nhật bản ghi thành công!');
       setEditViolationModalOpen(false);
       fetchViolations();
     } catch (err: any) {
-      alert(err.message || 'Lỗi cập nhật biên bản');
+      alert(err.message || 'Lỗi cập nhật');
     }
   };
 
   const handleDeleteViolation = async (v: Violation) => {
-    if (!window.confirm(`Xác nhận xóa biên bản vi phạm "${v.code}" của học sinh ${v.student_name}?\nĐiểm KPI của học sinh sẽ tự động được hoàn lại.`)) {
+    const isBonus = isBonusRule({ code: v.rule_code, category: (v as any).rule_category });
+    if (!window.confirm(`Xác nhận xóa bản ghi "${v.code}" của học sinh ${v.student_name}?\nĐiểm KPI của học sinh sẽ tự động được cập nhật lại.`)) {
       return;
     }
     try {
       await api.delete(`/kpi/violations/${v.id}`);
-      alert(`Đã xóa biên bản vi phạm ${v.code} thành công`);
+      alert(`Đã xóa ${isBonus ? 'khen thưởng' : 'biên bản'} ${v.code} thành công`);
       fetchViolations();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi xóa biên bản');
+      alert(err.message || 'Lỗi khi xóa');
     }
   };
 
@@ -414,9 +451,9 @@ export const KpiPage: React.FC = () => {
     e.preventDefault();
     try {
       await api.post('/kpi/rules', newRuleData);
-      alert(`Tạo quy chế lỗi ${newRuleData.code} thành công!`);
+      alert(`Tạo quy chế ${newRuleData.code} thành công!`);
       setCreateRuleModalOpen(false);
-      setNewRuleData({ code: '', name: '', category: 'KTX', deduction_points: 5, description: '' });
+      setNewRuleData({ code: '', name: '', category: 'KTX', deduction_points: 5, description: '', rule_type: 'deduction' });
       fetchRules();
     } catch (err: any) {
       alert(err.message || 'Lỗi khi tạo quy định');
@@ -424,13 +461,15 @@ export const KpiPage: React.FC = () => {
   };
 
   const handleOpenEditRule = (r: KpiRule) => {
+    const isBonus = isBonusRule(r);
     setEditingRuleId(r.id);
     setEditRuleData({
       code: r.code,
       name: r.name,
-      category: (r as any).category || 'KTX',
+      category: (r as any).category || (isBonus ? 'khen_thưởng' : 'KTX'),
       deduction_points: r.deduction_points,
       description: r.description || '',
+      rule_type: isBonus ? 'bonus' : 'deduction',
     });
     setEditRuleModalOpen(true);
   };
@@ -449,7 +488,7 @@ export const KpiPage: React.FC = () => {
   };
 
   const handleDeleteRule = async (r: KpiRule) => {
-    if (!window.confirm(`Xác nhận xóa quy định vi phạm "${r.code}: ${r.name}"?`)) {
+    if (!window.confirm(`Xác nhận xóa quy định "${r.code}: ${r.name}"?`)) {
       return;
     }
     try {
@@ -461,9 +500,9 @@ export const KpiPage: React.FC = () => {
     }
   };
 
-  const statusVariant = (s: string) => {
+  const statusVariant = (s: string, isBonus = false) => {
     switch (s) {
-      case 'approved': return { label: 'Đã phê duyệt', variant: 'danger' as const };
+      case 'approved': return { label: isBonus ? 'Đã duyệt (+)' : 'Đã duyệt (-)', variant: isBonus ? ('success' as const) : ('danger' as const) };
       case 'pending': return { label: 'Chờ duyệt', variant: 'warning' as const };
       case 'rejected': return { label: 'Đã từ chối', variant: 'neutral' as const };
       default: return { label: s, variant: 'neutral' as const };
@@ -479,7 +518,7 @@ export const KpiPage: React.FC = () => {
             KPI & sổ kỷ luật nền nếp
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Quy tắc 10 Mã Lỗi (L01 — L10) • Thang điểm gốc <strong>100 điểm</strong> • Cập nhật KPI thời gian thực
+            Quy tắc 10 Mã Lỗi Vi Phạm (L01 — L10) & 3 Tiêu Chí Điểm Cộng (C01 — C03) • Thang điểm gốc <strong>100 điểm</strong> • Cập nhật KPI thời gian thực
           </p>
         </div>
 
@@ -493,21 +532,29 @@ export const KpiPage: React.FC = () => {
             </button>
           )}
           {canCreateViolation && (
-            <button
-              onClick={handleOpenCreateViolationModal}
-              className="px-4 py-2 bg-[#d32027] hover:bg-[#b91c1c] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Lập biên bản vi phạm
-            </button>
+            <>
+              <button
+                onClick={handleOpenCreateBonusModal}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation"
+              >
+                <Award className="w-4 h-4" /> Ghi nhận điểm cộng / Khen thưởng
+              </button>
+              <button
+                onClick={handleOpenCreateViolationModal}
+                className="px-3.5 py-2 bg-[#d32027] hover:bg-[#b91c1c] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation"
+              >
+                <Plus className="w-4 h-4" /> Lập biên bản vi phạm
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      {/* Rules Grid (L01 - L10) */}
+      {/* Rules Grid (L01 - L10 & C01 - C03) */}
       <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-            <Scale className="w-4 h-4 text-[#0e3a7c]" /> Quy chế 10 Mã lỗi vi phạm nền nếp & Trừ điểm KPI
+            <Scale className="w-4 h-4 text-[#0e3a7c]" /> Quy chế 10 Mã lỗi vi phạm & 3 Tiêu chí cộng điểm thi đua KPI
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-slate-500 hidden sm:inline">
@@ -515,7 +562,17 @@ export const KpiPage: React.FC = () => {
             </span>
             {isAdmin && (
               <button
-                onClick={() => setCreateRuleModalOpen(true)}
+                onClick={() => {
+                  setNewRuleData({
+                    code: '',
+                    name: '',
+                    category: 'KTX',
+                    deduction_points: 5,
+                    description: '',
+                    rule_type: 'deduction',
+                  });
+                  setCreateRuleModalOpen(true);
+                }}
                 className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#0e3a7c] border border-blue-200 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Thêm quy định
@@ -525,47 +582,80 @@ export const KpiPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-          {rules.map((r) => (
-            <div
-              key={r.code}
-              className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-[#0e3a7c] transition-all flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-black text-xs text-[#0e3a7c]">{r.code}</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-extrabold text-[#d32027] bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
-                      -{r.deduction_points} đ
-                    </span>
-                    {isAdmin && (
-                      <>
-                        <button
-                          onClick={() => handleOpenEditRule(r)}
-                          className="text-slate-400 hover:text-amber-700 p-0.5 rounded cursor-pointer"
-                          title="Sửa quy định"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRule(r)}
-                          className="text-slate-400 hover:text-red-600 p-0.5 rounded cursor-pointer"
-                          title="Xóa quy định"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </>
-                    )}
+          {rules.map((r) => {
+            const isBonus = isBonusRule(r);
+            return (
+              <div
+                key={r.code}
+                className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between ${
+                  isBonus
+                    ? 'border-emerald-200 bg-emerald-50/40 hover:bg-white hover:border-emerald-500 hover:shadow-xs'
+                    : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-[#0e3a7c]'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {isBonus ? (
+                        <span className="font-mono font-black text-xs text-emerald-800 flex items-center gap-0.5">
+                          <Award className="w-3 h-3 text-emerald-600" />
+                          {r.code}
+                        </span>
+                      ) : (
+                        <span className="font-mono font-black text-xs text-[#0e3a7c]">{r.code}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {isBonus ? (
+                        <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-300">
+                          +{r.deduction_points} đ
+                        </span>
+                      ) : (
+                        <span className="text-xs font-extrabold text-[#d32027] bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
+                          -{r.deduction_points} đ
+                        </span>
+                      )}
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handleOpenEditRule(r)}
+                            className="text-slate-400 hover:text-amber-700 p-0.5 rounded cursor-pointer"
+                            title="Sửa quy định"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRule(r)}
+                            className="text-slate-400 hover:text-red-600 p-0.5 rounded cursor-pointer"
+                            title="Xóa quy định"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 mt-1 line-clamp-2" title={r.name}>
+                    {r.name}
                   </div>
                 </div>
-                <div className="text-xs font-bold text-slate-800 mt-1 line-clamp-2" title={r.name}>
-                  {r.name}
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-100 text-[10px]">
+                  <span className="text-slate-500 line-clamp-1 truncate max-w-[120px]" title={r.description}>
+                    {r.description || (isBonus ? 'Khen thưởng thi đua' : 'Nề nếp học đường')}
+                  </span>
+                  {isBonus ? (
+                    <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100/70 px-1 rounded">
+                      Cộng điểm
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-slate-400">
+                      Điểm trừ
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="text-[10px] text-slate-500 mt-1 line-clamp-1" title={r.description}>
-                {r.description}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -624,10 +714,17 @@ export const KpiPage: React.FC = () => {
             onChange={(e) => { setRuleFilter(e.target.value); setPage(1); }}
             className="p-1.5 border border-slate-300 rounded-lg bg-white flex-1 sm:flex-none text-xs"
           >
-            <option value="">Tất cả mã lỗi (L01 - L10)</option>
-            {rules.map((r) => (
-              <option key={r.id} value={r.id}>{r.code} - {r.name}</option>
-            ))}
+            <option value="">Tất cả quy chế (L01-L10 & C01-C03)</option>
+            <optgroup label="🟢 Tiêu chí cộng điểm (Khen thưởng)">
+              {rules.filter(isBonusRule).map((r) => (
+                <option key={r.id} value={r.id}>{r.code} - {r.name} (+{r.deduction_points}đ)</option>
+              ))}
+            </optgroup>
+            <optgroup label="🔴 Mã lỗi trừ điểm (Vi phạm)">
+              {rules.filter(r => !isBonusRule(r)).map((r) => (
+                <option key={r.id} value={r.id}>{r.code} - {r.name} (-{r.deduction_points}đ)</option>
+              ))}
+            </optgroup>
           </select>
 
           <select
@@ -669,13 +766,19 @@ export const KpiPage: React.FC = () => {
             </div>
           ) : (
             violations.map((v, idx) => {
-              const b = statusVariant(v.status);
+              const isBonus = isBonusRule({ code: v.rule_code, category: (v as any).rule_category });
+              const b = statusVariant(v.status, isBonus);
               const isNewest = idx === 0 && page === 1;
               return (
-                <div key={v.id} className={`p-3.5 space-y-2.5 transition-colors ${isNewest ? 'bg-blue-50/20' : ''}`}>
+                <div key={v.id} className={`p-3.5 space-y-2.5 transition-colors ${isBonus ? 'bg-emerald-50/20' : isNewest ? 'bg-blue-50/20' : ''}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-xs text-[#0e3a7c]">{v.code}</span>
+                      <span className={`font-mono font-bold text-xs ${isBonus ? 'text-emerald-800' : 'text-[#0e3a7c]'}`}>{v.code}</span>
+                      {isBonus && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
+                          Khen thưởng
+                        </span>
+                      )}
                       {isNewest && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase">
                           Mới
@@ -683,9 +786,15 @@ export const KpiPage: React.FC = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold text-xs text-[#d32027] bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
-                        -{v.points_deducted} đ
-                      </span>
+                      {isBonus ? (
+                        <span className="font-black text-xs text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300">
+                          +{v.points_deducted} đ
+                        </span>
+                      ) : (
+                        <span className="font-extrabold text-xs text-[#d32027] bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                          -{v.points_deducted} đ
+                        </span>
+                      )}
                       <Badge variant={b.variant}>{b.label}</Badge>
                     </div>
                   </div>
@@ -701,9 +810,15 @@ export const KpiPage: React.FC = () => {
 
                   <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 space-y-1 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-red-700 font-mono bg-red-50 px-1.5 py-0.2 rounded border border-red-200 text-[11px]">
-                        {v.rule_code}
-                      </span>
+                      {isBonus ? (
+                        <span className="font-bold text-emerald-800 font-mono bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-300 text-[11px]">
+                          +{v.rule_code}
+                        </span>
+                      ) : (
+                        <span className="font-bold text-red-700 font-mono bg-red-50 px-1.5 py-0.2 rounded border border-red-200 text-[11px]">
+                          {v.rule_code}
+                        </span>
+                      )}
                       <span className="font-semibold text-slate-800">{v.rule_name}</span>
                     </div>
                     <div className="text-slate-600 text-[11px] pt-0.5">
@@ -753,14 +868,14 @@ export const KpiPage: React.FC = () => {
                       <button
                         onClick={() => handleOpenEditViolation(v)}
                         className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg cursor-pointer touch-manipulation"
-                        title="Chỉnh sửa biên bản"
+                        title="Chỉnh sửa bản ghi"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteViolation(v)}
                         className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer touch-manipulation"
-                        title="Xóa biên bản"
+                        title="Xóa bản ghi"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -777,13 +892,13 @@ export const KpiPage: React.FC = () => {
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase text-[11px] text-slate-500">
               <tr>
-                <th className="px-4 py-3">Mã BB</th>
+                <th className="px-4 py-3">Mã BB / Ghi nhận</th>
                 <th className="px-4 py-3">Học sinh</th>
                 <th className="px-3 py-3">Lớp</th>
-                <th className="px-3 py-3">Mã lỗi</th>
+                <th className="px-3 py-3">Mã quy chế</th>
                 <th className="px-3 py-3">Thời gian</th>
-                <th className="px-4 py-3">Địa điểm & Diễn biến</th>
-                <th className="px-3 py-3">Điểm trừ</th>
+                <th className="px-4 py-3">Địa điểm & Diễn biến / Lý do</th>
+                <th className="px-3 py-3">Điểm KPI (+ / -)</th>
                 <th className="px-3 py-3">Trạng thái</th>
                 <th className="px-4 py-3 text-right">Thao tác</th>
               </tr>
@@ -792,24 +907,30 @@ export const KpiPage: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
-                    Đang tải danh sách biên bản vi phạm...
+                    Đang tải danh sách biên bản & khen thưởng...
                   </td>
                 </tr>
               ) : violations.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
-                    Không có biên bản vi phạm nào phù hợp
+                    Không có bản ghi nào phù hợp
                   </td>
                 </tr>
               ) : (
                 violations.map((v, idx) => {
-                  const b = statusVariant(v.status);
+                  const isBonus = isBonusRule({ code: v.rule_code, category: (v as any).rule_category });
+                  const b = statusVariant(v.status, isBonus);
                   const isNewest = idx === 0 && page === 1;
                   return (
-                    <tr key={v.id} className={`hover:bg-slate-50/80 transition-colors ${isNewest ? 'bg-blue-50/20' : ''}`}>
+                    <tr key={v.id} className={`hover:bg-slate-50/80 transition-colors ${isBonus ? 'bg-emerald-50/20' : isNewest ? 'bg-blue-50/20' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono font-bold text-[#0e3a7c]">{v.code}</span>
+                          <span className={`font-mono font-bold ${isBonus ? 'text-emerald-800' : 'text-[#0e3a7c]'}`}>{v.code}</span>
+                          {isBonus && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider">
+                              Khen thưởng
+                            </span>
+                          )}
                           {isNewest && (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">
                               Mới nhất
@@ -825,9 +946,15 @@ export const KpiPage: React.FC = () => {
                         {v.class_name}
                       </td>
                       <td className="px-3 py-3">
-                        <span className="font-bold text-red-700 font-mono bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
-                          {v.rule_code}
-                        </span>
+                        {isBonus ? (
+                          <span className="font-bold text-emerald-800 font-mono bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300">
+                            +{v.rule_code}
+                          </span>
+                        ) : (
+                          <span className="font-bold text-red-700 font-mono bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                            {v.rule_code}
+                          </span>
+                        )}
                         <div className="text-[10px] text-slate-500 truncate max-w-xs">{v.rule_name}</div>
                       </td>
                       <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
@@ -843,15 +970,23 @@ export const KpiPage: React.FC = () => {
                             type="button"
                             onClick={() => setViewingEvidenceUrl((v as any).evidence_url)}
                             className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-[10px] font-bold cursor-pointer transition-colors"
-                            title="Bấm để xem ảnh minh chứng vi phạm"
+                            title="Bấm để xem ảnh minh chứng"
                           >
                             <Camera className="w-3 h-3 text-blue-600" />
                             Có ảnh minh chứng
                           </button>
                         )}
                       </td>
-                      <td className="px-3 py-3 font-extrabold text-[#d32027]">
-                        -{v.points_deducted} đ
+                      <td className="px-3 py-3">
+                        {isBonus ? (
+                          <span className="font-black text-xs text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            +{v.points_deducted} đ
+                          </span>
+                        ) : (
+                          <span className="font-extrabold text-[#d32027]">
+                            -{v.points_deducted} đ
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-3">
                         <Badge variant={b.variant}>{b.label}</Badge>
@@ -948,18 +1083,54 @@ export const KpiPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal: Create Violation Ticket (Section 9.4) */}
+      {/* Modal: Create Violation / Bonus Ticket */}
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Lập biên bản vi phạm nề nếp mới"
+        title={recordType === 'bonus' ? 'Ghi nhận điểm cộng / Khen thưởng thi đua KPI' : 'Lập biên bản vi phạm nề nếp mới'}
         maxWidth="lg"
       >
         <form onSubmit={handleCreateViolationSubmit} className="space-y-4 text-xs text-slate-700">
+          {/* Switch Tab: Vi phạm vs Khen thưởng */}
+          <div className="flex rounded-xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setRecordType('violation');
+                const firstV = rules.find((r) => !isBonusRule(r));
+                setFormViolation((prev) => ({ ...prev, rule_id: firstV ? String(firstV.id) : '' }));
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                recordType === 'violation'
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" /> Biên bản vi phạm (Điểm trừ)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRecordType('bonus');
+                const firstB = rules.find(isBonusRule);
+                setFormViolation((prev) => ({ ...prev, rule_id: firstB ? String(firstB.id) : '' }));
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                recordType === 'bonus'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" /> Ghi nhận khen thưởng (Điểm cộng)
+            </button>
+          </div>
+
           {/* Student Search & Select */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="font-bold text-slate-800">1. Tìm & Chọn học sinh vi phạm (*)</label>
+              <label className="font-bold text-slate-800">
+                1. {recordType === 'bonus' ? 'Tìm & Chọn học sinh khen thưởng (*)' : 'Tìm & Chọn học sinh vi phạm (*)'}
+              </label>
               <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                 Tìm kiếm trực tiếp
@@ -1111,26 +1282,42 @@ export const KpiPage: React.FC = () => {
 
           {/* Rule Selection */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1">2. Mã lỗi vi phạm (*)</label>
+            <label className="block font-bold text-slate-700 mb-1">
+              2. {recordType === 'bonus' ? 'Tiêu chí khen thưởng / cộng điểm (*)' : 'Mã lỗi vi phạm nề nếp (*)'}
+            </label>
             <select
               required
               value={formViolation.rule_id}
               onChange={(e) => setFormViolation({ ...formViolation, rule_id: e.target.value })}
-              className="w-full p-2.5 border border-slate-300 rounded-xl bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full p-2.5 border rounded-xl bg-white text-xs font-semibold focus:outline-none focus:ring-2 ${
+                recordType === 'bonus'
+                  ? 'border-emerald-300 text-emerald-900 focus:ring-emerald-500'
+                  : 'border-slate-300 text-slate-800 focus:ring-blue-500'
+              }`}
             >
-              <option value="">-- Chọn mã lỗi L01 đến L10 --</option>
-              {rules.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.code}: {r.name} (-{r.deduction_points} điểm)
-                </option>
-              ))}
+              <option value="">{recordType === 'bonus' ? '-- Chọn tiêu chí cộng điểm C01 đến C03 --' : '-- Chọn mã lỗi L01 đến L10 --'}</option>
+              {recordType === 'bonus' ? (
+                rules.filter(isBonusRule).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    🟢 {r.code}: {r.name} (+{r.deduction_points} điểm)
+                  </option>
+                ))
+              ) : (
+                rules.filter((r) => !isBonusRule(r)).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    🔴 {r.code}: {r.name} (-{r.deduction_points} điểm)
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
           {/* Date, Time & Location (Tự động lấy đúng thời khắc bấm vào) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-800">3. Thời gian & Địa điểm xảy ra vi phạm (*)</label>
+              <label className="font-bold text-slate-800">
+                3. {recordType === 'bonus' ? 'Thời gian & Địa điểm ghi nhận khen thưởng (*)' : 'Thời gian & Địa điểm xảy ra vi phạm (*)'}
+              </label>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                   ⏰ Hiện tại: {currentTimeLive || 'Đang cập nhật...'}
@@ -1148,7 +1335,9 @@ export const KpiPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Ngày vi phạm</label>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  {recordType === 'bonus' ? 'Ngày ghi nhận' : 'Ngày vi phạm'}
+                </label>
                 <input
                   type="date"
                   required
@@ -1159,7 +1348,9 @@ export const KpiPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Giờ vi phạm (Thời khắc)</label>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  {recordType === 'bonus' ? 'Giờ ghi nhận' : 'Giờ vi phạm'}
+                </label>
                 <div className="relative">
                   <input
                     type="time"
@@ -1173,7 +1364,7 @@ export const KpiPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Địa điểm xảy ra</label>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Địa điểm</label>
                 <input
                   type="text"
                   required
@@ -1207,22 +1398,28 @@ export const KpiPage: React.FC = () => {
 
           {/* Description */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1">4. Mô tả chi tiết sự việc (*)</label>
+            <label className="block font-bold text-slate-700 mb-1">
+              4. {recordType === 'bonus' ? 'Lý do / Thành tích khen thưởng (*)' : 'Mô tả chi tiết sự việc (*)'}
+            </label>
             <textarea
               required
               rows={3}
               value={formViolation.description}
               onChange={(e) => setFormViolation({ ...formViolation, description: e.target.value })}
-              placeholder="Ghi rõ tình huống, tang vật thu giữ (nếu có), thái độ của học sinh..."
+              placeholder={
+                recordType === 'bonus'
+                  ? 'Ghi rõ thành tích: Đạt giải HSG, NCKH, người tốt việc tốt, trực tuần xuất sắc...'
+                  : 'Ghi rõ tình huống, tang vật thu giữ (nếu có), thái độ của học sinh...'
+              }
               className="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* 5. Ảnh minh chứng vi phạm / Tang vật (Chọn từ thiết bị) */}
+          {/* 5. Ảnh minh chứng vi phạm / Giấy khen (Chọn từ thiết bị) */}
           <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-[#0e3a7c]" /> 5. Ảnh minh chứng / Tang vật (Chọn từ thiết bị)
+                <Camera className="w-3.5 h-3.5 text-[#0e3a7c]" /> 5. {recordType === 'bonus' ? 'Ảnh minh chứng / Giấy khen / Cờ thi đua (Chọn từ thiết bị)' : 'Ảnh minh chứng vi phạm / Tang vật (Chọn từ thiết bị)'}
               </label>
               {formViolation.evidence_url && (
                 <button
@@ -1271,7 +1468,9 @@ export const KpiPage: React.FC = () => {
                   type="button"
                   disabled={isUploadingEvidence}
                   onClick={() => evidenceCreateFileInputRef.current?.click()}
-                  className="px-3 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className={`px-3 py-1.5 text-white font-bold rounded-lg text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                    recordType === 'bonus' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#0e3a7c] hover:bg-[#0a2754]'
+                  }`}
                 >
                   <Camera className="w-3.5 h-3.5" />
                   {isUploadingEvidence ? 'Đang tải ảnh...' : 'Chụp ảnh hoặc Chọn từ thiết bị'}
@@ -1291,205 +1490,246 @@ export const KpiPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-[#d32027] hover:bg-[#b91c1c] text-white font-bold rounded-lg cursor-pointer"
+              className={`px-4 py-1.5 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1.5 ${
+                recordType === 'bonus' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#d32027] hover:bg-[#b91c1c]'
+              }`}
             >
-              Lưu & Xác nhận biên bản
+              {recordType === 'bonus' ? (
+                <>
+                  <Award className="w-4 h-4" /> Lưu & Xác nhận khen thưởng (+)
+                </>
+              ) : (
+                'Lưu & Xác nhận biên bản (-)'
+              )}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal: Edit Violation Ticket */}
+      {/* Modal: Edit Violation / Bonus Record */}
       <Modal
         isOpen={editViolationModalOpen}
         onClose={() => setEditViolationModalOpen(false)}
-        title="Chỉnh sửa biên bản vi phạm nề nếp"
+        title={
+          isBonusRule(rules.find((r) => String(r.id) === String(editViolationForm.rule_id)))
+            ? 'Chỉnh sửa ghi nhận khen thưởng / cộng điểm'
+            : 'Chỉnh sửa biên bản vi phạm nề nếp'
+        }
         maxWidth="lg"
       >
         <form onSubmit={handleEditViolationSubmit} className="space-y-3 text-xs">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Mã lỗi vi phạm (*)</label>
-              <select
-                required
-                value={editViolationForm.rule_id}
-                onChange={(e) => {
-                  const r = rules.find((item) => String(item.id) === e.target.value);
-                  setEditViolationForm({
-                    ...editViolationForm,
-                    rule_id: e.target.value,
-                    points_deducted: r ? r.deduction_points : editViolationForm.points_deducted,
-                  });
-                }}
-                className="w-full p-2 border border-slate-300 rounded-lg bg-white"
-              >
-                {rules.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.code} - {r.name} (-{r.deduction_points}đ)
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Điểm trừ</label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                max="50"
-                value={editViolationForm.points_deducted}
-                onChange={(e) => setEditViolationForm({ ...editViolationForm, points_deducted: Number(e.target.value) })}
-                className="w-full p-2 border border-slate-300 rounded-lg font-bold text-red-600"
-              />
-            </div>
-          </div>
+          {(() => {
+            const currentSelectedRule = rules.find((r) => String(r.id) === String(editViolationForm.rule_id));
+            const isBonus = isBonusRule(currentSelectedRule);
+            return (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      {isBonus ? 'Tiêu chí khen thưởng (*)' : 'Mã lỗi vi phạm (*)'}
+                    </label>
+                    <select
+                      required
+                      value={editViolationForm.rule_id}
+                      onChange={(e) => {
+                        const r = rules.find((item) => String(item.id) === e.target.value);
+                        setEditViolationForm({
+                          ...editViolationForm,
+                          rule_id: e.target.value,
+                          points_deducted: r ? r.deduction_points : editViolationForm.points_deducted,
+                        });
+                      }}
+                      className="w-full p-2 border border-slate-300 rounded-lg bg-white"
+                    >
+                      <optgroup label="🟢 Tiêu chí cộng điểm (Khen thưởng)">
+                        {rules.filter(isBonusRule).map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.code} - {r.name} (+{r.deduction_points}đ)
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🔴 Mã lỗi trừ điểm (Vi phạm)">
+                        {rules.filter((r) => !isBonusRule(r)).map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.code} - {r.name} (-{r.deduction_points}đ)
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block font-bold mb-1 ${isBonus ? 'text-emerald-700' : 'text-slate-700'}`}>
+                      {isBonus ? 'Số điểm cộng (+)' : 'Điểm trừ (-)'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="50"
+                      value={editViolationForm.points_deducted}
+                      onChange={(e) => setEditViolationForm({ ...editViolationForm, points_deducted: Number(e.target.value) })}
+                      className={`w-full p-2 border rounded-lg font-bold ${
+                        isBonus ? 'border-emerald-300 text-emerald-700 bg-emerald-50/20' : 'border-slate-300 text-red-600'
+                      }`}
+                    />
+                  </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Ngày vi phạm</label>
-              <input
-                type="date"
-                required
-                value={editViolationForm.violation_date}
-                onChange={(e) => setEditViolationForm({ ...editViolationForm, violation_date: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Thời gian</label>
-              <input
-                type="time"
-                value={editViolationForm.violation_time}
-                onChange={(e) => setEditViolationForm({ ...editViolationForm, violation_time: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-          </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      {isBonus ? 'Ngày ghi nhận' : 'Ngày vi phạm'}
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={editViolationForm.violation_date}
+                      onChange={(e) => setEditViolationForm({ ...editViolationForm, violation_date: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Thời gian</label>
+                    <input
+                      type="time"
+                      value={editViolationForm.violation_time}
+                      onChange={(e) => setEditViolationForm({ ...editViolationForm, violation_time: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-lg"
+                    />
+                  </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Địa điểm xảy ra</label>
-              <input
-                type="text"
-                required
-                value={editViolationForm.location}
-                onChange={(e) => setEditViolationForm({ ...editViolationForm, location: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Trạng thái biên bản</label>
-              <select
-                value={editViolationForm.status}
-                onChange={(e) => setEditViolationForm({ ...editViolationForm, status: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-lg bg-white"
-              >
-                <option value="approved">Đã phê duyệt (Trừ điểm)</option>
-                <option value="pending">Chờ xét duyệt</option>
-                <option value="rejected">Từ chối (Không trừ điểm)</option>
-              </select>
-            </div>
-          </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Địa điểm</label>
+                    <input
+                      type="text"
+                      required
+                      value={editViolationForm.location}
+                      onChange={(e) => setEditViolationForm({ ...editViolationForm, location: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Trạng thái phê duyệt</label>
+                    <select
+                      value={editViolationForm.status}
+                      onChange={(e) => setEditViolationForm({ ...editViolationForm, status: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-lg bg-white"
+                    >
+                      <option value="approved">{isBonus ? 'Đã phê duyệt (Cộng điểm)' : 'Đã phê duyệt (Trừ điểm)'}</option>
+                      <option value="pending">Chờ xét duyệt</option>
+                      <option value="rejected">{isBonus ? 'Từ chối (Không cộng điểm)' : 'Từ chối (Không trừ điểm)'}</option>
+                    </select>
+                  </div>
+                </div>
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">Mô tả sự việc (*)</label>
-            <textarea
-              required
-              rows={3}
-              value={editViolationForm.description}
-              onChange={(e) => setEditViolationForm({ ...editViolationForm, description: e.target.value })}
-              className="w-full p-2 border border-slate-300 rounded-lg"
-            />
-          </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    {isBonus ? 'Lý do / Thành tích khen thưởng (*)' : 'Mô tả sự việc (*)'}
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={editViolationForm.description}
+                    onChange={(e) => setEditViolationForm({ ...editViolationForm, description: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-lg"
+                  />
+                </div>
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">Ghi chú xử lý / căn cứ</label>
-            <input
-              type="text"
-              value={editViolationForm.notes}
-              onChange={(e) => setEditViolationForm({ ...editViolationForm, notes: e.target.value })}
-              className="w-full p-2 border border-slate-300 rounded-lg"
-            />
-          </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Ghi chú xử lý / căn cứ</label>
+                  <input
+                    type="text"
+                    value={editViolationForm.notes}
+                    onChange={(e) => setEditViolationForm({ ...editViolationForm, notes: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-lg"
+                  />
+                </div>
 
-          {/* Ảnh minh chứng vi phạm / Tang vật (Chọn từ thiết bị) */}
-          <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-[#0e3a7c]" /> Ảnh minh chứng / Tang vật (Chọn từ thiết bị)
-              </label>
-              {editViolationForm.evidence_url && (
-                <button
-                  type="button"
-                  onClick={() => setEditViolationForm({ ...editViolationForm, evidence_url: '' })}
-                  className="text-[11px] text-red-600 hover:text-red-700 font-bold cursor-pointer"
-                >
-                  Xóa ảnh
-                </button>
-              )}
-            </div>
+                {/* Ảnh minh chứng */}
+                <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5 text-[#0e3a7c]" /> {isBonus ? 'Ảnh minh chứng / Giấy khen' : 'Ảnh minh chứng / Tang vật'}
+                    </label>
+                    {editViolationForm.evidence_url && (
+                      <button
+                        type="button"
+                        onClick={() => setEditViolationForm({ ...editViolationForm, evidence_url: '' })}
+                        className="text-[11px] text-red-600 hover:text-red-700 font-bold cursor-pointer"
+                      >
+                        Xóa ảnh
+                      </button>
+                    )}
+                  </div>
 
-            <input
-              type="file"
-              ref={evidenceEditFileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handleEditEvidenceSelect}
-            />
+                  <input
+                    type="file"
+                    ref={evidenceEditFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleEditEvidenceSelect}
+                  />
 
-            {editViolationForm.evidence_url ? (
-              <div className="flex items-center gap-3">
-                <img
-                  src={editViolationForm.evidence_url}
-                  alt="Minh chứng"
-                  className="w-20 h-20 object-cover rounded-lg border border-slate-300 shadow-2xs cursor-pointer hover:opacity-90"
-                  onClick={() => setViewingEvidenceUrl(editViolationForm.evidence_url)}
-                  title="Bấm xem phóng to"
-                />
-                <div className="space-y-1">
-                  <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Đã đính kèm ảnh minh chứng
-                  </p>
+                  {editViolationForm.evidence_url ? (
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={editViolationForm.evidence_url}
+                        alt="Minh chứng"
+                        className="w-20 h-20 object-cover rounded-lg border border-slate-300 shadow-2xs cursor-pointer hover:opacity-90"
+                        onClick={() => setViewingEvidenceUrl(editViolationForm.evidence_url)}
+                        title="Bấm xem phóng to"
+                      />
+                      <div className="space-y-1">
+                        <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Đã đính kèm ảnh minh chứng
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => evidenceEditFileInputRef.current?.click()}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg cursor-pointer"
+                        >
+                          Chọn ảnh khác từ thiết bị
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isUploadingEvidence}
+                        onClick={() => evidenceEditFileInputRef.current?.click()}
+                        className="px-3 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        {isUploadingEvidence ? 'Đang tải ảnh...' : 'Chụp ảnh hoặc Chọn từ thiết bị'}
+                      </button>
+                      <span className="text-[11px] text-slate-400">(Không bắt buộc)</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => evidenceEditFileInputRef.current?.click()}
-                    className="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg cursor-pointer"
+                    onClick={() => setEditViolationModalOpen(false)}
+                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer"
                   >
-                    Chọn ảnh khác từ thiết bị
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className={`px-4 py-1.5 text-white font-bold rounded-lg cursor-pointer ${
+                      isBonus ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#0e3a7c] hover:bg-[#0a2754]'
+                    }`}
+                  >
+                    Lưu thay đổi
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={isUploadingEvidence}
-                  onClick={() => evidenceEditFileInputRef.current?.click()}
-                  className="px-3 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  {isUploadingEvidence ? 'Đang tải ảnh...' : 'Chụp ảnh hoặc Chọn từ thiết bị'}
-                </button>
-                <span className="text-[11px] text-slate-400">(Không bắt buộc)</span>
-              </div>
-            )}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setEditViolationModalOpen(false)}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg cursor-pointer"
-            >
-              Lưu thay đổi
-            </button>
-          </div>
+              </>
+            );
+          })()}
         </form>
       </Modal>
 
@@ -1497,24 +1737,71 @@ export const KpiPage: React.FC = () => {
       <Modal
         isOpen={createRuleModalOpen}
         onClose={() => setCreateRuleModalOpen(false)}
-        title="Thêm quy định / mã lỗi KPI mới"
+        title={newRuleData.rule_type === 'bonus' ? 'Thêm tiêu chí cộng điểm KPI mới' : 'Thêm mã lỗi vi phạm KPI mới'}
         maxWidth="md"
       >
         <form onSubmit={handleCreateRule} className="space-y-3 text-xs">
+          {/* Rule Type Selector */}
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Loại tiêu chí</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setNewRuleData({
+                    ...newRuleData,
+                    rule_type: 'bonus',
+                    category: 'khen_thưởng',
+                    code: newRuleData.code.startsWith('L') ? 'C0' + (rules.filter(isBonusRule).length + 1) : newRuleData.code,
+                  })
+                }
+                className={`py-1.5 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                  newRuleData.rule_type === 'bonus'
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-800 shadow-2xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Award className="w-3.5 h-3.5 text-emerald-600" /> 🟢 Điểm cộng (Khen thưởng)
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setNewRuleData({
+                    ...newRuleData,
+                    rule_type: 'deduction',
+                    category: 'KTX',
+                    code: newRuleData.code.startsWith('C') ? 'L' + (rules.filter((r) => !isBonusRule(r)).length + 1) : newRuleData.code,
+                  })
+                }
+                className={`py-1.5 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                  newRuleData.rule_type === 'deduction'
+                    ? 'bg-red-50 border-red-400 text-red-800 shadow-2xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> 🔴 Điểm trừ (Vi phạm)
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Mã lỗi (*)</label>
+              <label className="block font-bold text-slate-700 mb-1">
+                {newRuleData.rule_type === 'bonus' ? 'Mã tiêu chí (*)' : 'Mã lỗi (*)'}
+              </label>
               <input
                 type="text"
                 required
-                placeholder="VD: L11 hoặc N01"
+                placeholder={newRuleData.rule_type === 'bonus' ? 'VD: C04' : 'VD: L11'}
                 value={newRuleData.code}
                 onChange={(e) => setNewRuleData({ ...newRuleData, code: e.target.value.toUpperCase() })}
                 className="w-full p-2 border border-slate-300 rounded-lg uppercase font-mono font-bold"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Điểm trừ (*)</label>
+              <label className={`block font-bold mb-1 ${newRuleData.rule_type === 'bonus' ? 'text-emerald-700' : 'text-slate-700'}`}>
+                {newRuleData.rule_type === 'bonus' ? 'Số điểm cộng (+)*' : 'Điểm trừ (-)*'}
+              </label>
               <input
                 type="number"
                 step="0.5"
@@ -1523,17 +1810,23 @@ export const KpiPage: React.FC = () => {
                 required
                 value={newRuleData.deduction_points}
                 onChange={(e) => setNewRuleData({ ...newRuleData, deduction_points: Number(e.target.value) })}
-                className="w-full p-2 border border-slate-300 rounded-lg font-bold text-red-600"
+                className={`w-full p-2 border rounded-lg font-bold ${
+                  newRuleData.rule_type === 'bonus'
+                    ? 'border-emerald-300 text-emerald-700 bg-emerald-50/20'
+                    : 'border-slate-300 text-red-600'
+                }`}
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Tên hành vi vi phạm (*)</label>
+            <label className="block font-bold text-slate-700 mb-1">
+              {newRuleData.rule_type === 'bonus' ? 'Tên tiêu chí khen thưởng / thi đua (*)' : 'Tên hành vi vi phạm (*)'}
+            </label>
             <input
               type="text"
               required
-              placeholder="VD: Sử dụng điện thoại trong giờ học không được phép"
+              placeholder={newRuleData.rule_type === 'bonus' ? 'VD: Đạt giải Nhất HSG Quốc gia, NCKH xuất sắc...' : 'VD: Sử dụng điện thoại trong giờ học...'}
               value={newRuleData.name}
               onChange={(e) => setNewRuleData({ ...newRuleData, name: e.target.value })}
               className="w-full p-2 border border-slate-300 rounded-lg"
@@ -1547,6 +1840,7 @@ export const KpiPage: React.FC = () => {
               onChange={(e) => setNewRuleData({ ...newRuleData, category: e.target.value })}
               className="w-full p-2 border border-slate-300 rounded-lg bg-white"
             >
+              <option value="khen_thưởng">Khen thưởng & Thi đua học đường</option>
               <option value="KTX">Ký túc xá & Nề nếp nội trú</option>
               <option value="Học tập">Học tập & Tòa nhà A</option>
               <option value="Chung">Nội quy chung toàn trường</option>
@@ -1554,7 +1848,7 @@ export const KpiPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Mô tả và hướng dẫn xử lý</label>
+            <label className="block font-bold text-slate-700 mb-1">Mô tả và hướng dẫn xử lý / căn cứ</label>
             <textarea
               rows={2}
               value={newRuleData.description}
@@ -1573,25 +1867,62 @@ export const KpiPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg cursor-pointer"
+              className={`px-4 py-1.5 text-white font-bold rounded-lg cursor-pointer ${
+                newRuleData.rule_type === 'bonus' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#0e3a7c] hover:bg-[#0a2754]'
+              }`}
             >
-              Tạo quy định mới
+              Tạo tiêu chí mới
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal: Edit KPI Rule */}
+      {/* Modal: Edit KPI Rule (Hỗ trợ cả Tiêu chí cộng điểm & Mã lỗi trừ điểm) */}
       <Modal
         isOpen={editRuleModalOpen}
         onClose={() => setEditRuleModalOpen(false)}
-        title={`Chỉnh sửa quy định: ${editRuleData.code}`}
+        title={
+          editRuleData.rule_type === 'bonus'
+            ? `Chỉnh sửa tiêu chí cộng điểm: ${editRuleData.code}`
+            : `Chỉnh sửa quy định vi phạm: ${editRuleData.code}`
+        }
         maxWidth="md"
       >
         <form onSubmit={handleEditRule} className="space-y-3 text-xs">
+          {/* Rule Type Selector */}
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Loại tiêu chí</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditRuleData({ ...editRuleData, rule_type: 'bonus', category: 'khen_thưởng' })}
+                className={`py-1.5 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                  editRuleData.rule_type === 'bonus'
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-800 shadow-2xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Award className="w-3.5 h-3.5 text-emerald-600" /> 🟢 Điểm cộng (Khen thưởng)
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditRuleData({ ...editRuleData, rule_type: 'deduction', category: 'KTX' })}
+                className={`py-1.5 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                  editRuleData.rule_type === 'deduction'
+                    ? 'bg-red-50 border-red-400 text-red-800 shadow-2xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> 🔴 Điểm trừ (Vi phạm)
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Mã lỗi</label>
+              <label className="block font-bold text-slate-700 mb-1">
+                {editRuleData.rule_type === 'bonus' ? 'Mã tiêu chí' : 'Mã lỗi'}
+              </label>
               <input
                 type="text"
                 disabled
@@ -1600,7 +1931,9 @@ export const KpiPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Điểm trừ (*)</label>
+              <label className={`block font-bold mb-1 ${editRuleData.rule_type === 'bonus' ? 'text-emerald-700' : 'text-slate-700'}`}>
+                {editRuleData.rule_type === 'bonus' ? 'Số điểm cộng (+)*' : 'Điểm trừ (-)*'}
+              </label>
               <input
                 type="number"
                 step="0.5"
@@ -1609,13 +1942,19 @@ export const KpiPage: React.FC = () => {
                 required
                 value={editRuleData.deduction_points}
                 onChange={(e) => setEditRuleData({ ...editRuleData, deduction_points: Number(e.target.value) })}
-                className="w-full p-2 border border-slate-300 rounded-lg font-bold text-red-600"
+                className={`w-full p-2 border rounded-lg font-bold ${
+                  editRuleData.rule_type === 'bonus'
+                    ? 'border-emerald-300 text-emerald-700 bg-emerald-50/20'
+                    : 'border-slate-300 text-red-600'
+                }`}
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Tên hành vi vi phạm (*)</label>
+            <label className="block font-bold text-slate-700 mb-1">
+              {editRuleData.rule_type === 'bonus' ? 'Tên tiêu chí khen thưởng / thi đua (*)' : 'Tên hành vi vi phạm (*)'}
+            </label>
             <input
               type="text"
               required
@@ -1632,6 +1971,7 @@ export const KpiPage: React.FC = () => {
               onChange={(e) => setEditRuleData({ ...editRuleData, category: e.target.value })}
               className="w-full p-2 border border-slate-300 rounded-lg bg-white"
             >
+              <option value="khen_thưởng">Khen thưởng & Thi đua học đường</option>
               <option value="KTX">Ký túc xá & Nề nếp nội trú</option>
               <option value="Học tập">Học tập & Tòa nhà A</option>
               <option value="Chung">Nội quy chung toàn trường</option>
@@ -1639,7 +1979,7 @@ export const KpiPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Mô tả và hướng dẫn xử lý</label>
+            <label className="block font-bold text-slate-700 mb-1">Mô tả và hướng dẫn xử lý / căn cứ</label>
             <textarea
               rows={2}
               value={editRuleData.description}
@@ -1658,7 +1998,9 @@ export const KpiPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-[#0e3a7c] hover:bg-[#0a2754] text-white font-bold rounded-lg cursor-pointer"
+              className={`px-4 py-1.5 text-white font-bold rounded-lg cursor-pointer ${
+                editRuleData.rule_type === 'bonus' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#0e3a7c] hover:bg-[#0a2754]'
+              }`}
             >
               Lưu thay đổi
             </button>

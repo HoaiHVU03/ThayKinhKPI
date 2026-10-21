@@ -12,6 +12,13 @@ use PDO;
 class KpiController {
     public function rules(Request $request): void {
         $db = Database::getConnection();
+        // Tự động kiểm tra và cập nhật C01, C02, C03 điểm cộng nếu đang là 0
+        try {
+            $db->exec("UPDATE kpi_rules SET deduction_points = 5, category = 'khen_thưởng' WHERE code = 'C01' AND deduction_points = 0");
+            $db->exec("UPDATE kpi_rules SET deduction_points = 3, category = 'khen_thưởng' WHERE code = 'C02' AND deduction_points = 0");
+            $db->exec("UPDATE kpi_rules SET deduction_points = 2, category = 'khen_thưởng' WHERE code = 'C03' AND deduction_points = 0");
+        } catch (\Exception $e) {}
+
         $rules = $db->query("SELECT * FROM kpi_rules ORDER BY code ASC")->fetchAll();
         Response::success($rules);
     }
@@ -102,7 +109,7 @@ class KpiController {
 
         $sql = "
             SELECT v.*, s.code AS student_code, s.full_name AS student_name, c.name AS class_name,
-                   r.code AS rule_code, r.name AS rule_name,
+                   r.code AS rule_code, r.name AS rule_name, r.category AS rule_category,
                    u_rep.full_name AS reporter_name, u_app.full_name AS approver_name,
                    dr.code AS room_code, dr.floor_number AS floor_number
             FROM violation_records v
@@ -158,14 +165,18 @@ class KpiController {
             return;
         }
 
-        // Fetch rule deduction points
-        $rule = $db->query("SELECT code, deduction_points FROM kpi_rules WHERE id = $ruleId")->fetch();
+        // Fetch rule deduction points and category
+        $rule = $db->query("SELECT code, deduction_points, category FROM kpi_rules WHERE id = $ruleId")->fetch();
         if (!$rule) {
-            Response::notFound('Mã vi phạm không hợp lệ');
+            Response::notFound('Mã quy chế không hợp lệ');
             return;
         }
 
-        $code = 'BB-' . date('Ymd') . '-' . sprintf("%04d", rand(1000, 9999));
+        $codeUpper = strtoupper(trim($rule['code']));
+        $cat = trim($rule['category'] ?? '');
+        $isBonus = ($cat === 'khen_thưởng' || str_starts_with($codeUpper, 'C'));
+        $prefix = $isBonus ? 'KT-' : 'BB-';
+        $code = $prefix . date('Ymd') . '-' . sprintf("%04d", rand(1000, 9999));
         
         // Admins and Dorm Manager violations are auto-approved; others (duty teachers, room leaders) can be 'pending' or 'approved'
         $isAdminOrMgr = in_array($user['role'] ?? '', ['admin', 'dorm_manager', 'youth_union']);
@@ -191,13 +202,17 @@ class KpiController {
             }
 
             // Audit log
-            $db->prepare("INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) VALUES (?, 'CREATE_VIOLATION', 'violation_records', ?, ?)")
-                ->execute([$user['id'] ?? 1, $violationId, "Lập biên bản vi phạm $code (-{$rule['deduction_points']} điểm)"]);
+            $auditAction = $isBonus ? 'CREATE_BONUS' : 'CREATE_VIOLATION';
+            $auditMsg = $isBonus 
+                ? "Ghi nhận khen thưởng $code (+{$rule['deduction_points']} điểm)" 
+                : "Lập biên bản vi phạm $code (-{$rule['deduction_points']} điểm)";
+            $db->prepare("INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details) VALUES (?, ?, 'violation_records', ?, ?)")
+                ->execute([$user['id'] ?? 1, $auditAction, $violationId, $auditMsg]);
 
             $db->commit();
         } catch (\Exception $e) {
             $db->rollBack();
-            Response::error('Lỗi khi lập biên bản: ' . $e->getMessage(), 500);
+            Response::error('Lỗi khi ghi nhận: ' . $e->getMessage(), 500);
             return;
         }
 
@@ -205,7 +220,7 @@ class KpiController {
             'id' => $violationId,
             'code' => $code,
             'status' => $status
-        ], 'Lập biên bản vi phạm thành công', 201);
+        ], ($isBonus ? 'Ghi nhận điểm cộng khen thưởng' : 'Lập biên bản vi phạm') . ' thành công', 201);
     }
 
     public function importViolations(Request $request): void {
@@ -594,14 +609,31 @@ class KpiController {
     }
 
     private function recalculateStudentKpi(PDO $db, int $studentId, int $periodId): void {
-        $totalDeducted = (float)$db->query("
-            SELECT COALESCE(SUM(points_deducted), 0)
-            FROM violation_records
-            WHERE student_id = $studentId AND period_id = $periodId AND status = 'approved'
-        ")->fetchColumn();
+        $records = $db->query("
+            SELECT vr.points_deducted, kr.code, kr.category
+            FROM violation_records vr
+            LEFT JOIN kpi_rules kr ON vr.rule_id = kr.id
+            WHERE vr.student_id = $studentId AND vr.period_id = $periodId AND vr.status = 'approved'
+        ")->fetchAll();
+
+        $totalDeducted = 0.0;
+        $totalBonus = 0.0;
+
+        foreach ($records as $r) {
+            $pts = (float)$r['points_deducted'];
+            $code = strtoupper(trim($r['code'] ?? ''));
+            $cat = trim($r['category'] ?? '');
+            $isBonus = ($cat === 'khen_thưởng' || str_starts_with($code, 'C'));
+            if ($isBonus) {
+                $totalBonus += $pts;
+            } else {
+                $totalDeducted += $pts;
+            }
+        }
 
         $baseline = 100.0;
-        $finalScore = max(0.0, $baseline - $totalDeducted);
+        // Công thức chuẩn theo Excel Chuyên Hùng Vương: Điểm KPI = 100 + Tổng Điểm Cộng - Tổng Điểm Trừ
+        $finalScore = max(0.0, round($baseline - $totalDeducted + $totalBonus, 1));
 
         $classification = 'Xuất sắc';
         if ($finalScore < 50) $classification = 'Chưa đạt';

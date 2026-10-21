@@ -107,6 +107,7 @@ export interface KpiRule {
   deduction_points: number;
   description: string;
   category: string;
+  rule_type?: 'deduction' | 'bonus';
 }
 
 export interface Violation {
@@ -129,6 +130,7 @@ export interface Violation {
   reporter_name?: string;
   approver_name?: string;
   evidence_url?: string;
+  is_bonus?: boolean;
 }
 
 export interface DailyRegime {
