@@ -160,8 +160,8 @@ class ReportController {
         $schoolName = mb_strtoupper($settings['school_name'] ?? 'TRƯỜNG THPT CHUYÊN HÙNG VƯƠNG', 'UTF-8');
         $province = mb_strtoupper($settings['school_province'] ?? 'PHÚ THỌ', 'UTF-8');
         $deptName = (stripos($province, 'SỞ') === 0) ? $province : "SỞ GIÁO DỤC VÀ ĐÀO TẠO " . $province;
-        $principalName = $settings['principal_name'] ?? 'TS. Phạm Tuấn Anh';
-        $dormManagerName = $settings['dorm_manager_name'] ?? 'Thầy Đỗ Văn Thắng';
+        $principalName = $settings['principal_name'] ?? 'ĐÀO MẠNH THẮNG';
+        $dormManagerName = $settings['dorm_manager_name'] ?? 'VŨ VĂN HIỀN';
         $youthSecretary = $settings['youth_union_secretary'] ?? 'Cô Trần Thị Mai';
         $acYear = $settings['academic_year_current'] ?? '2026-2027';
         $schoolCode = $settings['school_code'] ?? 'THPTCHV';

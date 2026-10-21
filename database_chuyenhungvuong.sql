@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CƠ SỞ DỮ LIỆU CHÍNH THỨC THPT CHUYÊN HÙNG VƯƠNG — PHÚ THỌ (2026 - 2027)
--- Tự động sinh từ 3 file dữ liệu thực tế vào ngày 21/10/2026 07:50:15
+-- Tự động sinh từ 3 file dữ liệu thực tế vào ngày 21/10/2026 08:26:54
 -- ============================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -449,7 +449,7 @@ INSERT INTO `kpi_assessment_periods` (`id`, `code`, `name`, `academic_year_id`, 
 
 -- 4. NGƯỜI DÙNG & TÀI KHOẢN HỆ THỐNG
 INSERT INTO `users` (`id`, `username`, `password_hash`, `full_name`, `email`, `phone`, `role`, `status`, `avatar_url`, `created_at`, `updated_at`) VALUES
-(1, 'admin', '$2y$10$rBFHNfOpnAnVlO3ffBDO9O0nssQMbVCtVMIC4hylOcaW2uyjH0UGK', 'Thầy Đào Mạnh Thắng (Hiệu trưởng)', 'admin@hungvuong.edu.vn', '0912345678', 'admin', 'active', '', NOW(), NOW()),
+(1, 'admin', '$2y$10$rBFHNfOpnAnVlO3ffBDO9O0nssQMbVCtVMIC4hylOcaW2uyjH0UGK', 'ĐÀO MẠNH THẮNG', 'admin@hungvuong.edu.vn', '0912345678', 'admin', 'active', '', NOW(), NOW()),
 (2, 'quan_sinh', '$2y$10$rBFHNfOpnAnVlO3ffBDO9O0nssQMbVCtVMIC4hylOcaW2uyjH0UGK', 'Thầy Vũ Văn Hiền (Trưởng Ban Quản sinh KTX)', 'quansinh@hungvuong.edu.vn', '0987654321', 'dorm_manager', 'active', '', NOW(), NOW()),
 (3, 'thaykinh', '$2y$10$rBFHNfOpnAnVlO3ffBDO9O0nssQMbVCtVMIC4hylOcaW2uyjH0UGK', 'Thầy Nguyễn Văn Kính (Phó Hiệu trưởng)', 'thaykinh@hungvuong.edu.vn', '0912345679', 'admin', 'active', '', NOW(), NOW()),
 (4, 'doan_truong', '$2y$10$rBFHNfOpnAnVlO3ffBDO9O0nssQMbVCtVMIC4hylOcaW2uyjH0UGK', 'Đoàn Trường THPT Chuyên Hùng Vương', 'doantruong@hungvuong.edu.vn', '02103846541', 'youth_union', 'active', '', NOW(), NOW()),
@@ -5546,7 +5546,10 @@ INSERT INTO `school_settings` (`setting_key`, `setting_value`, `description`, `u
 ('contact_hotline', '0210.3846.541', 'Đường dây nóng KTX & Ban Giám hiệu', NOW()),
 ('contact_email', 'thptchuyenhungvuong@phutho.edu.vn', 'Email liên hệ', NOW()),
 ('dorm_building_name', 'Tòa nhà A - KTX Chuyên Hùng Vương', 'Tên tòa nhà KTX nội trú', NOW()),
-('address', 'Đường Nguyễn Tất Thành, Xã Trưng Vương, TP Việt Trì, Tỉnh Phú Thọ', 'Địa chỉ trụ sở', NOW());
+('address', 'Đường Nguyễn Tất Thành, Xã Trưng Vương, TP Việt Trì, Tỉnh Phú Thọ', 'Địa chỉ trụ sở', NOW()),
+('principal_name', 'ĐÀO MẠNH THẮNG', 'Hiệu trưởng nhà trường', NOW()),
+('dorm_manager_name', 'VŨ VĂN HIỀN', 'Trưởng Ban Quản sinh KTX', NOW()),
+('vice_principals', 'Thầy Nguyễn Văn Kính, Cô Nguyễn Thị Thanh Thủy', 'Các Phó Hiệu trưởng', NOW());
 
 SET FOREIGN_KEY_CHECKS = 1;
 

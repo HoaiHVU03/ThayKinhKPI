@@ -56,7 +56,7 @@ export const downloadMasterTemplate = (
           { 'Thuộc tính cấu hình': 'Tên trường học', 'Giá trị': mode === 'empty' ? '' : 'Trường THPT Chu Văn An', 'Mã cấu hình': 'ten_truong', 'Ghi chú / Hướng dẫn': 'Tên chính thức hiển thị trên toàn bộ website và báo cáo' },
           { 'Thuộc tính cấu hình': 'Mã trường', 'Giá trị': mode === 'empty' ? '' : 'THPT-CVA', 'Mã cấu hình': 'ma_truong', 'Ghi chú / Hướng dẫn': 'Viết tắt để đánh số hiệu văn bản (VD: THPT-CVA)' },
           { 'Thuộc tính cấu hình': 'Tỉnh / Thành phố', 'Giá trị': mode === 'empty' ? '' : 'Hà Nội', 'Mã cấu hình': 'tinh_thanh', 'Ghi chú / Hướng dẫn': 'Tên tỉnh hoặc Sở GD&ĐT chủ quản' },
-          { 'Thuộc tính cấu hình': 'Họ tên Hiệu trưởng', 'Giá trị': mode === 'empty' ? '' : 'TS. Nguyễn Văn A', 'Mã cấu hình': 'hieu_truong', 'Ghi chú / Hướng dẫn': 'Hiển thị trên phiếu KPI và báo cáo A4' },
+          { 'Thuộc tính cấu hình': 'Họ tên Hiệu trưởng', 'Giá trị': mode === 'empty' ? '' : 'ĐÀO MẠNH THẮNG', 'Mã cấu hình': 'hieu_truong', 'Ghi chú / Hướng dẫn': 'Hiển thị trên phiếu KPI và báo cáo A4' },
           { 'Thuộc tính cấu hình': 'Họ tên các Hiệu phó', 'Giá trị': mode === 'empty' ? '' : 'Cô Trần Thị B, Thầy Lê Văn C', 'Mã cấu hình': 'hieu_pho', 'Ghi chú / Hướng dẫn': 'Phân cách bằng dấu phẩy nếu có nhiều hiệu phó' },
           { 'Thuộc tính cấu hình': 'Trưởng ban Quản sinh KTX', 'Giá trị': mode === 'empty' ? '' : 'Thầy Đỗ Văn D', 'Mã cấu hình': 'truong_ban_quan_sinh', 'Ghi chú / Hướng dẫn': 'Người ký duyệt và điều hành nề nếp KTX' },
           { 'Thuộc tính cấu hình': 'Bí thư Đoàn trường', 'Giá trị': mode === 'empty' ? '' : 'Cô Phạm Thị E', 'Mã cấu hình': 'bi_thu_doan', 'Ghi chú / Hướng dẫn': 'Phụ trách công tác thi đua và thanh niên' },

@@ -561,7 +561,7 @@ export const OfficialDocumentPage: React.FC = () => {
                 <div>
                   <div className="font-bold uppercase text-black text-[13pt]">HIỆU TRƯỞNG</div>
                   <div className="h-16 flex items-center justify-center italic text-slate-500 text-[11pt]">(Ký và đóng dấu)</div>
-                  <div className="font-bold text-black mt-2 text-[13pt]">{schoolSettings.principal_name || 'TS. Phạm Tuấn Anh'}</div>
+                  <div className="font-bold text-black mt-2 text-[13pt]">{schoolSettings.principal_name || 'ĐÀO MẠNH THẮNG'}</div>
                 </div>
               </div>
             </div>
@@ -709,7 +709,7 @@ export const OfficialDocumentPage: React.FC = () => {
               <div className="text-center w-4/12">
                 <div className="font-bold uppercase text-black text-[13pt]">BAN GIÁM HIỆU DUYỆT</div>
                 <div className="h-16 flex items-center justify-center italic text-slate-500 text-[11pt]">(Ký và đóng dấu)</div>
-                <div className="font-bold text-black mt-2 text-[13pt]">{schoolSettings.principal_name || 'TS. Phạm Tuấn Anh'}</div>
+                <div className="font-bold text-black mt-2 text-[13pt]">{schoolSettings.principal_name || 'ĐÀO MẠNH THẮNG'}</div>
               </div>
             </div>
           </div>
@@ -905,7 +905,7 @@ export const OfficialDocumentPage: React.FC = () => {
               <div className="text-center w-3/12">
                 <div className="font-bold uppercase text-black text-[13pt]">HIỆU TRƯỞNG</div>
                 <div className="h-16 flex items-center justify-center italic text-slate-500 text-[11pt]">(Ký và đóng dấu)</div>
-                <div className="font-bold text-black mt-2 text-[12pt]">{schoolSettings.principal_name || 'TS. Phạm Tuấn Anh'}</div>
+                <div className="font-bold text-black mt-2 text-[12pt]">{schoolSettings.principal_name || 'ĐÀO MẠNH THẮNG'}</div>
               </div>
             </div>
           </div>

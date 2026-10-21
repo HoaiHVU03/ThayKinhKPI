@@ -900,7 +900,7 @@ export const AdminPage: React.FC = () => {
                 <label className="block font-bold text-slate-700 mb-1">Họ tên Hiệu trưởng (*)</label>
                 <input
                   type="text"
-                  placeholder="VD: TS. Lê Ngọc Lộc"
+                  placeholder="VD: ĐÀO MẠNH THẮNG"
                   value={settings.principal_name || ''}
                   onChange={(e) => setSettings({ ...settings, principal_name: e.target.value })}
                   className="w-full p-2 border border-slate-300 rounded-lg text-xs"

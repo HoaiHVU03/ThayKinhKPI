@@ -551,7 +551,7 @@ users_list.append({
     'id': 1,
     'username': 'admin',
     'password_hash': PASSWORD_HASH,
-    'full_name': 'Thầy Đào Mạnh Thắng (Hiệu trưởng)',
+    'full_name': 'ĐÀO MẠNH THẮNG',
     'email': 'admin@hungvuong.edu.vn',
     'phone': '0912345678',
     'role': 'admin',
@@ -946,7 +946,10 @@ INSERT INTO `school_settings` (`setting_key`, `setting_value`, `description`, `u
 ('contact_hotline', '0210.3846.541', 'Đường dây nóng KTX & Ban Giám hiệu', NOW()),
 ('contact_email', 'thptchuyenhungvuong@phutho.edu.vn', 'Email liên hệ', NOW()),
 ('dorm_building_name', 'Tòa nhà A - KTX Chuyên Hùng Vương', 'Tên tòa nhà KTX nội trú', NOW()),
-('address', 'Đường Nguyễn Tất Thành, Xã Trưng Vương, TP Việt Trì, Tỉnh Phú Thọ', 'Địa chỉ trụ sở', NOW());
+('address', 'Đường Nguyễn Tất Thành, Xã Trưng Vương, TP Việt Trì, Tỉnh Phú Thọ', 'Địa chỉ trụ sở', NOW()),
+('principal_name', 'ĐÀO MẠNH THẮNG', 'Hiệu trưởng nhà trường', NOW()),
+('dorm_manager_name', 'VŨ VĂN HIỀN', 'Trưởng Ban Quản sinh KTX', NOW()),
+('vice_principals', 'Thầy Nguyễn Văn Kính, Cô Nguyễn Thị Thanh Thủy', 'Các Phó Hiệu trưởng', NOW());
 """)
 
 sql_output.append("SET FOREIGN_KEY_CHECKS = 1;")
