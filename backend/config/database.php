@@ -6,13 +6,14 @@ if (file_exists(__DIR__ . '/env.php')) {
     $envConfig = require __DIR__ . '/env.php';
 }
 
-$defaultDb = $envConfig['DB_NAME'] ?? (getenv('DB_NAME') ?: 'd0g97w3mqxbj_kpi');
+$isWindows = (PHP_OS_FAMILY === 'Windows');
+$defaultDb = $envConfig['DB_NAME'] ?? (getenv('DB_NAME') ?: ($isWindows ? 'chuyenhungvuong_kpi' : 'd0g97w3mqxbj_kpi'));
 // QUAN TRỌNG: Trên cPanel / Linux hosting, bắt buộc dùng 'localhost' (kết nối qua UNIX Socket)
 // Không dùng '127.0.0.1' vì MySQL trên cPanel chỉ phân quyền cho user@localhost
-$dbHost    = $envConfig['DB_HOST'] ?? (getenv('DB_HOST') ?: 'localhost');
+$dbHost    = $envConfig['DB_HOST'] ?? (getenv('DB_HOST') ?: ($isWindows ? '127.0.0.1' : 'localhost'));
 $dbPort    = $envConfig['DB_PORT'] ?? (getenv('DB_PORT') ?: '3306');
-$dbUser    = $envConfig['DB_USER'] ?? (getenv('DB_USER') ?: 'd0g97w3mqxbj_kpiuser');
-$dbPass    = $envConfig['DB_PASS'] ?? (getenv('DB_PASS') ?: 'ThayKinhKPI@2026');
+$dbUser    = $envConfig['DB_USER'] ?? (getenv('DB_USER') ?: ($isWindows ? 'root' : 'd0g97w3mqxbj_kpiuser'));
+$dbPass    = $envConfig['DB_PASS'] ?? (getenv('DB_PASS') ?: ($isWindows ? '' : 'ThayKinhKPI@2026'));
 
 // Multi-tenant Dynamic Database Resolution:
 // 1. Check HTTP header X-School-Code (e.g. from Frontend or API client)

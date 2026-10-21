@@ -674,6 +674,42 @@ scopes_list.append({
     'scope_id': classes_list[0]['id']
 })
 
+# Tài khoản Demo tiện ích: gv_10t1 (GVCN 10 Toán 1) và ltbt_10t1 (LT BT 10 Toán 1)
+u_gv10t1_id = len(users_list) + 1
+users_list.append({
+    'id': u_gv10t1_id,
+    'username': 'gv_10t1',
+    'password_hash': PASSWORD_HASH,
+    'full_name': 'Triệu Văn Dũng (GVCN 10 Toán 1)',
+    'email': 'gv_10t1@hungvuong.edu.vn',
+    'phone': '0981012345',
+    'role': 'homeroom_teacher',
+    'status': 'active'
+})
+scopes_list.append({
+    'user_id': u_gv10t1_id,
+    'scope_type': 'class',
+    'scope_id': classes_list[0]['id']
+})
+
+u_ltbt10t1_id = len(users_list) + 1
+users_list.append({
+    'id': u_ltbt10t1_id,
+    'username': 'ltbt_10t1',
+    'password_hash': PASSWORD_HASH,
+    'full_name': 'Ban Cán Sự Lớp 10 Toán 1 (Lớp trưởng / Bí thư)',
+    'email': 'ltbt_10t1@hungvuong.edu.vn',
+    'phone': '0981112233',
+    'role': 'class_cadre',
+    'status': 'active'
+})
+scopes_list.append({
+    'user_id': u_ltbt10t1_id,
+    'scope_type': 'class',
+    'scope_id': classes_list[0]['id']
+})
+
+
 # Trưởng phòng KTX (TP)
 seen_usernames = set(u['username'] for u in users_list)
 for tp in tp_students_info:
