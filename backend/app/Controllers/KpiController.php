@@ -608,7 +608,7 @@ class KpiController {
         Response::success(null, "Đã xóa quy định {$rule['code']} thành công");
     }
 
-    private function recalculateStudentKpi(PDO $db, int $studentId, int $periodId): void {
+    public static function recalculateStudent(PDO $db, int $studentId, int $periodId = 1): void {
         $records = $db->query("
             SELECT vr.points_deducted, kr.code, kr.category
             FROM violation_records vr
@@ -651,4 +651,9 @@ class KpiController {
         ");
         $stmt->execute([$studentId, $periodId, $baseline, $totalDeducted, $finalScore, $classification]);
     }
+
+    public function recalculateStudentKpi(PDO $db, int $studentId, int $periodId): void {
+        self::recalculateStudent($db, $studentId, $periodId);
+    }
 }
+

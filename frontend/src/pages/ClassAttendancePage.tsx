@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   BarChart3,
   Award,
+  X,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -88,6 +89,11 @@ export const ClassAttendancePage: React.FC = () => {
   const [absentStudents, setAbsentStudents] = useState<any[]>([]);
   const [absentFilter, setAbsentFilter] = useState<string>('all');
   const [absentLoading, setAbsentLoading] = useState<boolean>(false);
+
+  // Dynamic KPI rules from database
+  const [kpiRules, setKpiRules] = useState<any[]>([]);
+  const [ruleModalStudent, setRuleModalStudent] = useState<any | null>(null);
+  const [selectedCustomRule, setSelectedCustomRule] = useState<string>('L01');
 
   // =========================================================================
   // MULTI-DIMENSIONAL STATISTICS STATE (Tab 2: Ngày, Tuần, Tháng x Lớp, Khối, Trường)
@@ -156,6 +162,18 @@ export const ClassAttendancePage: React.FC = () => {
   useEffect(() => {
     fetchSessions();
   }, [selectedDate, gradeFilter, searchTerm]);
+
+  useEffect(() => {
+    const fetchRules = async () => {
+      try {
+        const res: any = await api.get('/kpi/rules');
+        setKpiRules(res || []);
+      } catch (err) {
+        console.error('Error fetching KPI rules:', err);
+      }
+    };
+    fetchRules();
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'absent_list') {
@@ -269,21 +287,40 @@ export const ClassAttendancePage: React.FC = () => {
     }
   };
 
-  // 1-touch create violation ticket from absent/late record
-  const handleCreateViolation = async (student: any, defaultRule: 'L01' | 'L04') => {
-    const ruleName = defaultRule === 'L01' ? 'Đi học muộn đầu giờ (L01)' : 'Vắng mặt không phép đầu giờ (L04)';
-    if (!confirm(`Lập biên bản vi phạm nề nếp "${ruleName}" cho học sinh ${student.student_name || student.full_name}?`)) {
+  // L01 rule from DB (Đi học muộn, Vắng không phép)
+  const l01Rule = useMemo(() => {
+    return kpiRules.find((r) => r.code === 'L01') || {
+      code: 'L01',
+      name: 'Đi học muộn, Vắng không phép (sau 7h00)',
+      deduction_points: 1,
+    };
+  }, [kpiRules]);
+
+  // Specific rule for absence if exists, otherwise L01
+  const absenceRule = useMemo(() => {
+    const r = kpiRules.find((r) => r.code === 'L01' || r.name?.toLowerCase().includes('vắng'));
+    return r || l01Rule;
+  }, [kpiRules, l01Rule]);
+
+  // 1-touch create violation ticket from absent/late record linked directly to KPI rules
+  const handleCreateViolation = async (student: any, ruleCode: string = 'L01') => {
+    const rule = kpiRules.find((r) => r.code === ruleCode) || (ruleCode === 'L01' ? l01Rule : { code: ruleCode, name: 'Vi phạm nề nếp', deduction_points: 1 });
+    const ruleName = `${rule.code} - ${rule.name}`;
+    const pts = rule.deduction_points ?? 1;
+
+    if (!confirm(`Lập biên bản vi phạm nề nếp "${ruleName}" (Trừ ${pts} điểm KPI) cho học sinh ${student.student_name || student.full_name}?`)) {
       return;
     }
     try {
-      await api.post('/class-attendance/create-violation', {
+      const res: any = await api.post('/class-attendance/create-violation', {
         student_id: student.student_id || student.id,
-        rule_code: defaultRule,
+        rule_code: rule.code,
         date: selectedDate,
-        note: student.note || student.currentNote || (defaultRule === 'L01' ? 'Đi học muộn đầu giờ' : 'Nghỉ học không phép đầu giờ'),
+        note: student.note || student.currentNote || (student.status === 'late' ? 'Đi học muộn đầu giờ' : 'Vắng mặt không phép đầu giờ'),
       });
-      alert(`Đã lập biên bản vi phạm nề nếp thành công! Điểm KPI của học sinh đã được tự động trừ theo quy chế.`);
+      alert(res?.message || `Đã lập biên bản vi phạm nề nếp ${rule.code} (-${pts} điểm) thành công! Điểm KPI của học sinh đã được tự động trừ theo quy chế.`);
       if (activeTab === 'absent_list') fetchAbsentList();
+      setRuleModalStudent(null);
     } catch (err: any) {
       alert(err.message || 'Lỗi khi lập biên bản');
     }
@@ -1514,26 +1551,50 @@ export const ClassAttendancePage: React.FC = () => {
                         <td className="px-4 py-3 text-right">
                           {canCreateViolation ? (
                             <>
-                              {s.status === 'unexcused_absence' && (
-                                <button
-                                  onClick={() => handleCreateViolation(s, 'L04')}
-                                  className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold cursor-pointer transition-all shadow-2xs"
-                                  title="Tạo biên bản trừ điểm KPI (L04 Vắng không phép)"
+                              {s.violation_id ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold shadow-2xs whitespace-nowrap"
+                                  title={`Đã lập biên bản ${s.violation_code} (-${s.violation_points}đ) lúc điểm danh`}
                                 >
-                                  Phạt L04 (-10đ)
-                                </button>
-                              )}
-                              {s.status === 'late' && (
-                                <button
-                                  onClick={() => handleCreateViolation(s, 'L01')}
-                                  className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-bold cursor-pointer transition-all shadow-2xs"
-                                  title="Tạo biên bản trừ điểm KPI (L01 Đi muộn)"
-                                >
-                                  Phạt L01 (-5đ)
-                                </button>
-                              )}
-                              {s.status === 'excused_absence' && (
-                                <span className="text-slate-400 text-[10px] italic">Có phép</span>
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  Đã phạt {s.violation_rule_code || 'L01'} (-{s.violation_points}đ)
+                                </span>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1">
+                                  {s.status === 'unexcused_absence' && (
+                                    <button
+                                      onClick={() => handleCreateViolation(s, absenceRule.code)}
+                                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold cursor-pointer transition-all shadow-2xs inline-flex items-center gap-1 whitespace-nowrap"
+                                      title={`Tạo biên bản trừ điểm KPI (${absenceRule.code} - ${absenceRule.name}: -${absenceRule.deduction_points}đ)`}
+                                    >
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Phạt {absenceRule.code} (-{absenceRule.deduction_points}đ)
+                                    </button>
+                                  )}
+                                  {s.status === 'late' && (
+                                    <button
+                                      onClick={() => handleCreateViolation(s, l01Rule.code)}
+                                      className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-bold cursor-pointer transition-all shadow-2xs inline-flex items-center gap-1 whitespace-nowrap"
+                                      title={`Tạo biên bản trừ điểm KPI (${l01Rule.code} - ${l01Rule.name}: -${l01Rule.deduction_points}đ)`}
+                                    >
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Phạt {l01Rule.code} (-{l01Rule.deduction_points}đ)
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      setRuleModalStudent(s);
+                                      setSelectedCustomRule(s.status === 'late' ? 'L01' : 'L01');
+                                    }}
+                                    className="px-1.5 py-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded text-[10px] font-semibold border border-slate-200 cursor-pointer whitespace-nowrap"
+                                    title="Chọn mã lỗi khác (L01 - L10) từ Quy chế"
+                                  >
+                                    Mã khác...
+                                  </button>
+                                  {s.status === 'excused_absence' && (
+                                    <span className="text-slate-400 text-[10px] italic">Có phép</span>
+                                  )}
+                                </div>
                               )}
                             </>
                           ) : (
@@ -2042,6 +2103,98 @@ export const ClassAttendancePage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Modal Chọn Mã Lỗi Quy Chế KPI Trừ Điểm (L01 - L10) */}
+      {ruleModalStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 bg-[#0e3a7c] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-300" />
+                <h3 className="font-extrabold text-sm">CHỌN MÃ LỖI QUY CHẾ KPI ĐỂ TRỪ ĐIỂM</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRuleModalStudent(null)}
+                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 text-xs">
+              <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200">
+                <div className="font-bold text-slate-900 text-sm">{ruleModalStudent.student_name}</div>
+                <div className="text-slate-600 mt-0.5">
+                  Lớp {ruleModalStudent.class_name} • Trạng thái điểm danh:{' '}
+                  <span className="font-bold text-[#0e3a7c]">
+                    {ruleModalStudent.status === 'late'
+                      ? 'Đi muộn đầu giờ'
+                      : ruleModalStudent.status === 'unexcused_absence'
+                      ? 'Vắng không phép'
+                      : 'Nghỉ có phép'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5">
+                  Chọn mã lỗi vi phạm theo khung 10 mã quy chế nhà trường:
+                </label>
+                <div className="max-h-64 overflow-y-auto space-y-1.5 border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+                  {kpiRules
+                    .filter((r) => !r.code.startsWith('C'))
+                    .map((r) => {
+                      const isSel = selectedCustomRule === r.code;
+                      return (
+                        <div
+                          key={r.id || r.code}
+                          onClick={() => setSelectedCustomRule(r.code)}
+                          className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                            isSel
+                              ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold shadow-2xs'
+                              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <input
+                              type="radio"
+                              name="attendance_rule_select"
+                              checked={isSel}
+                              onChange={() => setSelectedCustomRule(r.code)}
+                              className="text-[#0e3a7c]"
+                            />
+                            <span className="font-mono text-blue-700 font-extrabold">{r.code}</span>
+                            <span className="truncate">{r.name}</span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-200 shrink-0">
+                            -{r.deduction_points}đ
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setRuleModalStudent(null)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCreateViolation(ruleModalStudent, selectedCustomRule)}
+                  className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Xác nhận lập biên bản (-
+                  {(kpiRules.find((r) => r.code === selectedCustomRule)?.deduction_points ?? 1)}đ)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

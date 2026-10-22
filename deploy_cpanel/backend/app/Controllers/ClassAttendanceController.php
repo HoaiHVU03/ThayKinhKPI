@@ -845,13 +845,24 @@ class ClassAttendanceController {
                    s.gender, s.parent_name, s.parent_phone, s.student_phone, s.is_boarding,
                    dr.code AS room_code,
                    c.id AS class_id, c.code AS class_code, c.name AS class_name, c.grade_level,
-                   t.full_name AS teacher_name, t.phone AS teacher_phone
+                   t.full_name AS teacher_name, t.phone AS teacher_phone,
+                   vr.id AS violation_id, vr.code AS violation_code, vr.points_deducted AS violation_points,
+                   kr.code AS violation_rule_code, kr.name AS violation_rule_name
             FROM class_attendance_records car
             JOIN class_attendance_sessions cas ON car.session_id = cas.id
             JOIN students s ON car.student_id = s.id
             JOIN classes c ON car.class_id = c.id
             LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id
             LEFT JOIN dormitory_rooms dr ON s.dorm_room_id = dr.id
+            LEFT JOIN violation_records vr ON vr.id = (
+                SELECT MAX(v2.id) 
+                FROM violation_records v2 
+                WHERE v2.student_id = car.student_id 
+                  AND v2.violation_date = cas.session_date 
+                  AND (v2.location LIKE '%Lớp học%' OR v2.description LIKE '%Điểm danh%')
+                  AND v2.status != 'rejected'
+            )
+            LEFT JOIN kpi_rules kr ON vr.rule_id = kr.id
             WHERE $whereClause
             ORDER BY c.grade_level ASC, c.id ASC, car.status ASC, SUBSTRING_INDEX(TRIM(s.full_name), ' ', -1) ASC, s.full_name ASC
         ";
@@ -875,7 +886,7 @@ class ClassAttendanceController {
         $user = AuthMiddleware::$currentUser;
 
         $studentId = (int)$request->input('student_id');
-        $ruleCode = trim($request->input('rule_code', 'L01')); // L01: Muộn, L04: Vắng không phép
+        $ruleCode = strtoupper(trim($request->input('rule_code', 'L01'))); // L01: Muộn / Vắng
         $date = $request->input('date', date('Y-m-d'));
         $note = trim($request->input('note', ''));
 
@@ -890,9 +901,40 @@ class ClassAttendanceController {
             return;
         }
 
+        // Check if student already has a confirmed violation ticket for today's attendance
+        $checkExisting = $db->prepare("
+            SELECT vr.id, vr.code, vr.points_deducted, kr.code AS rule_code
+            FROM violation_records vr
+            LEFT JOIN kpi_rules kr ON vr.rule_id = kr.id
+            WHERE vr.student_id = ? AND vr.violation_date = ? 
+              AND (vr.location LIKE '%Lớp học%' OR vr.description LIKE '%Điểm danh%')
+              AND vr.status != 'rejected'
+            LIMIT 1
+        ");
+        $checkExisting->execute([$studentId, $date]);
+        $existing = $checkExisting->fetch();
+        if ($existing) {
+            Response::success([
+                'violation_id' => $existing['id'],
+                'code' => $existing['code'],
+                'points_deducted' => $existing['points_deducted'],
+                'rule_code' => $existing['rule_code'],
+                'already_exists' => true,
+            ], "Học sinh {$student['full_name']} đã được lập biên bản {$existing['code']} (-{$existing['points_deducted']} điểm) trước đó.");
+            return;
+        }
+
         $rule = $db->prepare("SELECT id, code, name, deduction_points FROM kpi_rules WHERE code = ?");
         $rule->execute([$ruleCode]);
         $r = $rule->fetch();
+        if (!$r) {
+            $rule = $db->prepare("SELECT id, code, name, deduction_points FROM kpi_rules WHERE UPPER(code) = UPPER(?) LIMIT 1");
+            $rule->execute([$ruleCode]);
+            $r = $rule->fetch();
+            if (!$r) {
+                $r = $db->query("SELECT id, code, name, deduction_points FROM kpi_rules WHERE code = 'L01' LIMIT 1")->fetch();
+            }
+        }
         if (!$r) {
             Response::notFound("Không tìm thấy quy chế lỗi mã $ruleCode");
             return;
@@ -920,15 +962,15 @@ class ClassAttendanceController {
             ]);
             $violationId = $db->lastInsertId();
 
-            // Recalculate student KPI
-            $kpiCtrl = new KpiController();
-            $kpiCtrl->recalculateStudentKpi($db, $studentId, 1);
+            // Recalculate student KPI using public static method
+            KpiController::recalculateStudent($db, $studentId, 1);
 
             $db->commit();
             Response::success([
                 'violation_id' => $violationId,
                 'code' => $code,
                 'points_deducted' => $r['deduction_points'],
+                'rule_code' => $r['code'],
             ], "Đã lập biên bản $code (-{$r['deduction_points']} điểm) cho học sinh {$student['full_name']}");
         } catch (\Exception $e) {
             $db->rollBack();
