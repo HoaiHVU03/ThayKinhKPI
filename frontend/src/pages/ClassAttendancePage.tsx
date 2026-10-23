@@ -8,6 +8,14 @@ import { useSchoolSettings } from '../context/SchoolSettingsContext';
 import { Modal } from '../components/Modal';
 import * as XLSX from 'xlsx';
 import {
+  getTodayVN,
+  getCurrentTimeVN,
+  getCurrentTimeSecondsVN,
+  formatVNDate,
+  formatVNFullDate,
+  isTodayVN,
+} from '../utils/dateTime';
+import {
   CalendarCheck2,
   Users,
   UserCheck,
@@ -56,10 +64,24 @@ export const ClassAttendancePage: React.FC = () => {
   const canTakeAttendance = ['admin', 'homeroom_teacher', 'class_cadre'].includes(user?.role || '');
   const canCreateViolation = ['admin', 'dorm_manager', 'homeroom_teacher'].includes(user?.role || '');
 
-  // Selected date for Daily view & Roll call
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return new Date().toISOString().slice(0, 10);
+  // Selected date for Daily view & Roll call (Chuẩn múi giờ Việt Nam GMT+7)
+  const [selectedDate, setSelectedDate] = useState<string>(() => getTodayVN());
+
+  // Real-time live clock ticker (Cập nhật trực tiếp từng giây)
+  const [liveClock, setLiveClock] = useState<{ time: string; fullDate: string }>({
+    time: getCurrentTimeSecondsVN(),
+    fullDate: formatVNFullDate(),
   });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveClock({
+        time: getCurrentTimeSecondsVN(),
+        fullDate: formatVNFullDate(),
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Active Main Tab
   const [activeTab, setActiveTab] = useState<'classes' | 'statistics' | 'absent_list' | 'report'>('classes');
@@ -81,7 +103,7 @@ export const ClassAttendancePage: React.FC = () => {
   const [rollCallStudents, setRollCallStudents] = useState<any[]>([]);
   const [classNotes, setClassNotes] = useState<string>('');
   const [shiftName, setShiftName] = useState<string>('Đầu giờ sáng');
-  const [sessionTime, setSessionTime] = useState<string>('07:00');
+  const [sessionTime, setSessionTime] = useState<string>(() => getCurrentTimeVN());
   const [rollCallLoading, setRollCallLoading] = useState<boolean>(false);
   const [savingRollCall, setSavingRollCall] = useState<boolean>(false);
 
@@ -102,7 +124,7 @@ export const ClassAttendancePage: React.FC = () => {
   const [statScope, setStatScope] = useState<'school' | 'grade' | 'class'>('school');
   const [statGrade, setStatGrade] = useState<string>('all');
   const [statClassId, setStatClassId] = useState<number | 'all'>('all');
-  const [statDate, setStatDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [statDate, setStatDate] = useState<string>(() => getTodayVN());
   const [statsData, setStatsData] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(false);
 
@@ -200,7 +222,7 @@ export const ClassAttendancePage: React.FC = () => {
       setClassNotes(res.session?.notes || '');
       setShiftName(res.session?.shift_name || 'Đầu giờ sáng');
       // If session already has recorded time, use it; otherwise use current local time
-      const currentTimeStr = new Date().toTimeString().slice(0, 5);
+      const currentTimeStr = getCurrentTimeVN();
       setSessionTime(res.session?.session_time || currentTimeStr);
       setRollCallStudents(
         (res.students || []).map((s: any) => ({
@@ -251,7 +273,7 @@ export const ClassAttendancePage: React.FC = () => {
 
       const res: any = await api.post(`/class-attendance/classes/${activeClassId}/save`, {
         session_date: selectedDate,
-        session_time: sessionTime || new Date().toTimeString().slice(0, 5),
+        session_time: sessionTime || getCurrentTimeVN(),
         shift_name: shiftName,
         notes: classNotes,
         records,
@@ -270,8 +292,8 @@ export const ClassAttendancePage: React.FC = () => {
 
   // 1-touch mark all present from table
   const handleQuickMarkAllPresent = async (classId: number, className: string) => {
-    const curTime = new Date().toTimeString().slice(0, 5);
-    if (!confirm(`Xác nhận đánh dấu 100% học sinh lớp ${className} có mặt đầy đủ đầu giờ lúc ${curTime} (ngày ${selectedDate})?`)) {
+    const curTime = getCurrentTimeVN();
+    if (!confirm(`Xác nhận đánh dấu 100% học sinh lớp ${className} có mặt đầy đủ đầu giờ lúc ${curTime} (ngày ${formatVNDate(selectedDate)})?`)) {
       return;
     }
     try {
@@ -400,7 +422,7 @@ export const ClassAttendancePage: React.FC = () => {
     } else if (statPeriodType === 'month') {
       cur.setMonth(cur.getMonth() + direction);
     }
-    setStatDate(cur.toISOString().slice(0, 10));
+    setStatDate(getTodayVN(cur));
   };
 
   return (
@@ -452,6 +474,38 @@ export const ClassAttendancePage: React.FC = () => {
             <Printer className="w-4 h-4 shrink-0" />
             <span>In mẫu A4</span>
           </button>
+        </div>
+      </div>
+
+      {/* Realtime Live Clock & Today Status Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white px-4 py-3 rounded-2xl shadow-sm border border-blue-800/40">
+        <div className="flex items-center gap-2.5 text-xs">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <span className="text-emerald-300 tracking-wider font-black uppercase text-[11px] shrink-0">GIỜ REALTIME:</span>
+          <span className="text-white font-mono font-bold text-xs sm:text-sm tracking-tight">{liveClock.fullDate} • {liveClock.time}</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          {isTodayVN(selectedDate) ? (
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Đang xem ngày Hôm nay (Realtime)
+            </span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[11px] flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Đang xem lịch sử: {formatVNDate(selectedDate)}
+              </span>
+              <button
+                onClick={() => setSelectedDate(getTodayVN())}
+                className="px-2.5 py-1 rounded-lg bg-white text-blue-950 font-black text-[11px] hover:bg-blue-50 transition-all cursor-pointer shadow-xs touch-action-manipulation"
+              >
+                ⚡ Về Realtime Hôm nay
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -583,10 +637,14 @@ export const ClassAttendancePage: React.FC = () => {
               className="border-none font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
             />
             <button
-              onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
-              className="text-[11px] font-bold text-blue-700 hover:underline px-1.5 py-0.5 rounded bg-blue-50 cursor-pointer touch-action-manipulation"
+              onClick={() => setSelectedDate(getTodayVN())}
+              className={`text-[11px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all touch-action-manipulation ${
+                isTodayVN(selectedDate)
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-blue-700 hover:underline bg-blue-50'
+              }`}
             >
-              Hôm nay
+              {isTodayVN(selectedDate) ? '● Hôm nay (Realtime)' : 'Hôm nay'}
             </button>
           </div>
         )}
@@ -694,7 +752,11 @@ export const ClassAttendancePage: React.FC = () => {
                           </span>
                         )}
                         <div className="text-xs font-black text-slate-900 mt-1">
-                          {c.total_students} HS • <span className={rate >= 95 ? 'text-emerald-700' : 'text-blue-700'}>{rate}%</span>
+                          {c.total_students} HS • {isCompleted ? (
+                            <span className={rate >= 95 ? 'text-emerald-700' : 'text-blue-700'}>{rate}%</span>
+                          ) : (
+                            <span className="text-slate-400 font-medium text-[11px]">Chưa điểm danh</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -961,7 +1023,7 @@ export const ClassAttendancePage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setStatDate(new Date().toISOString().slice(0, 10))}
+                  onClick={() => setStatDate(getTodayVN())}
                   className="px-2.5 py-1 text-xs font-bold text-[#0e3a7c] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 cursor-pointer touch-action-manipulation"
                 >
                   {statPeriodType === 'day' ? 'Hôm nay' : statPeriodType === 'week' ? 'Tuần này' : 'Tháng này'}

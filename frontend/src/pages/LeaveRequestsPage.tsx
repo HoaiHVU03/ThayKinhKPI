@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import type { LeaveRequest, Student } from '../types';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
+import { getTodayVN } from '../utils/dateTime';
 import {
   FileText,
   Clock,
@@ -285,10 +286,7 @@ export const LeaveRequestsPage: React.FC = () => {
     if (preset === 'yesterday') {
       d.setDate(d.getDate() - 1);
     }
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    setDateFilter(`${y}-${m}-${day}`);
+    setDateFilter(getTodayVN(d));
   };
 
   return (
@@ -430,7 +428,7 @@ export const LeaveRequestsPage: React.FC = () => {
             <button
               onClick={() => setDatePreset('today')}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                dateFilter === new Date().toISOString().slice(0, 10)
+                dateFilter === getTodayVN()
                   ? 'bg-[#0e3a7c] text-white shadow-2xs'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}

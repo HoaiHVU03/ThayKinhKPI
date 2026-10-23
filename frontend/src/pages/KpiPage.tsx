@@ -8,6 +8,7 @@ import type { KpiRule, Violation, Student } from '../types';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { ExcelImportModal, type ColumnMapping } from '../components/ExcelImportModal';
+import { getTodayVN } from '../utils/dateTime';
 import {
   Award,
   AlertTriangle,
@@ -684,9 +685,9 @@ export const KpiPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => { setDateFilter(new Date().toISOString().slice(0, 10)); setPage(1); }}
+            onClick={() => { setDateFilter(getTodayVN()); setPage(1); }}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer touch-manipulation ${
-              dateFilter === new Date().toISOString().slice(0, 10)
+              dateFilter === getTodayVN()
                 ? 'bg-[#0e3a7c] text-white shadow-2xs'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}

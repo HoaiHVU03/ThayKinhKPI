@@ -2,6 +2,7 @@
 // Utility for generating multi-sheet Master Excel template and parsing uploaded onboarding data for new schools
 
 import * as XLSX from 'xlsx';
+import { getTodayVN } from './dateTime';
 
 export interface ParsedMasterData {
   school_info: Record<string, any>;
@@ -249,7 +250,7 @@ export const downloadMasterTemplate = (
   XLSX.utils.book_append_sheet(wb, wsRegimes, '7_CheDoSinhHoat');
 
   // Generate file name
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const dateStr = getTodayVN().replace(/-/g, '');
   const fileName =
     mode === 'current'
       ? `Sao_Luu_Toan_Bo_Du_Lieu_${dateStr}.xlsx`

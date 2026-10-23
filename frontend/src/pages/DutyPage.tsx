@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import type { DutySchedule } from '../types';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
+import { getTodayVN } from '../utils/dateTime';
 import {
   ShieldAlert,
   Clock,
@@ -30,7 +31,7 @@ export const DutyPage: React.FC = () => {
   const [createScheduleModalOpen, setCreateScheduleModalOpen] = useState(false);
   const [newScheduleData, setNewScheduleData] = useState({
     teacher_id: '',
-    duty_date: new Date().toISOString().split('T')[0],
+    duty_date: getTodayVN(),
     shift_name: '06:55 - 07:15',
     location: 'Tòa nhà A',
     notes: 'Trực ban buổi sáng',

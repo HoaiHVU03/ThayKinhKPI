@@ -581,7 +581,7 @@ class ClassAttendanceController {
                 'id' => null,
                 'class_id' => $classIdInt,
                 'session_date' => $date,
-                'session_time' => '07:00',
+                'session_time' => ($date === date('Y-m-d') ? date('H:i') : '07:00'),
                 'shift_name' => 'Đầu giờ sáng',
                 'total_students' => count($students),
                 'present_count' => count($students),

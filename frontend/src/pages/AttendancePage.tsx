@@ -6,6 +6,7 @@ import type { DormRoom, Student } from '../types';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { StatCard } from '../components/StatCard';
+import { getTodayVN } from '../utils/dateTime';
 import {
   CalendarCheck2,
   Clock,
@@ -64,7 +65,7 @@ export const AttendancePage: React.FC = () => {
 
   // Statistics Tab state
   const [statPeriodType, setStatPeriodType] = useState<'day' | 'month' | 'year'>('day');
-  const [statDate, setStatDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [statDate, setStatDate] = useState<string>(() => getTodayVN());
   const [statSessionType, setStatSessionType] = useState<'evening' | 'morning'>('evening');
   const [statMonth, setStatMonth] = useState<number>(new Date().getMonth() + 1);
   const [statYear, setStatYear] = useState<number>(new Date().getFullYear());

@@ -2,6 +2,9 @@
 // backend/public/index.php
 // Front controller for THPT Chuyen Hung Vuong Management & KPI System
 
+// Thiết lập múi giờ Việt Nam chuẩn (GMT+7) cho toàn bộ hệ thống
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 // Tự động bắt lỗi PHP và trả về thông báo JSON thay vì màn hình 500 trắng
 ini_set('display_errors', 0);
 error_reporting(E_ALL);

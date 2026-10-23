@@ -16,10 +16,9 @@ if %errorlevel% neq 0 (
 cd ..
 
 echo [2/4] Đang đồng bộ file build vào all_in_one_staging...
+del /Q all_in_one_staging\assets\*.* 2>nul
 xcopy /E /I /Y frontend\dist\* all_in_one_staging\ >nul
-del /Q all_in_one_staging\assets\index-Csuok3Gw.css 2>nul
-del /Q all_in_one_staging\assets\index-R_20jVOr.js 2>nul
-copy /Y backend\app\Controllers\ClassController.php all_in_one_staging\backend\app\Controllers\ClassController.php >nul
+xcopy /E /I /Y backend\app\* all_in_one_staging\backend\app\ >nul
 copy /Y backend\public\index.php all_in_one_staging\backend\public\index.php >nul
 
 echo [3/4] Chuẩn bị Git Commit...

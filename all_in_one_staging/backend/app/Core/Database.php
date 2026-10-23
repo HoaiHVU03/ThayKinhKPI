@@ -6,6 +6,10 @@ namespace App\Core;
 use PDO;
 use PDOException;
 
+if (!date_default_timezone_get() || date_default_timezone_get() === 'UTC') {
+    date_default_timezone_set('Asia/Ho_Chi_Minh');
+}
+
 class Database {
     private static array $instances = [];
 
@@ -30,7 +34,9 @@ class Database {
         if (!isset(self::$instances[$dbKey])) {
             $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";
             try {
-                self::$instances[$dbKey] = new PDO($dsn, $config['username'], $config['password'], $config['options']);
+                $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
+                @$pdo->exec("SET time_zone = '+07:00'");
+                self::$instances[$dbKey] = $pdo;
             } catch (PDOException $e) {
                 http_response_code(500);
                 header('Content-Type: application/json; charset=UTF-8');
